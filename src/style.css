@@ -245,3 +245,7 @@ body.touch #help { display: none; }
   #train { font-size: 40px; }
   #train b { font-size: 28px; }
 }
+
+#rp-hint { color: #fff8e1; font-size: 15px; margin-top: 4px; text-shadow: 1px 1px 0 #000; }
+#replay-ui { pointer-events: none; }
+#replay-ui button { pointer-events: auto; }

@@ -14,7 +14,7 @@ const PRE_FRAMES = 40;           // 2 s of footage before the blast
 const MAX_FRAMES = PRE_FRAMES + 16 / SNAP_DT;   // a combo replay lasts at most 16 s
 export const CHAIN_WINDOW = 2.5;   // seconds between blasts that still count as one combo
 const BURP_FACTOR = 0.8;    // burps always score a bit less than farts
-const TOXIC = 15000;        // a combo this big sets off a toxic event
+const TOXIC = 10000;        // a combo this big sets off a toxic event
 const LADY_CHASE = 5;      // seconds the fancy lady chases you
 const DAZE = 2.5;          // seconds you see stars after her selfie stick
 export const chainMult = (n) => 1 + 0.5 * (Math.min(n, 7) - 1);
@@ -248,7 +248,11 @@ export class Game {
     this.gas.fart += food.fart;
     this.gas.burp += food.burp;
     for (const k of ['fart', 'burp']) {
-      if (this.gas[k] > this.hero.tank) { this.shart += (this.gas[k] - this.hero.tank) * 0.3 / this.hero.control; this.gas[k] = this.hero.tank; }
+      if (this.gas[k] > this.hero.tank) {
+        // overeating food strains the belly; drinks never touch the shart meter
+        if (!food.drink) this.shart += (this.gas[k] - this.hero.tank) * 0.3 / this.hero.control;
+        this.gas[k] = this.hero.tank;
+      }
     }
     this.shart = Math.min(100, Math.max(0, this.shart + (food.shart > 0 ? food.shart / this.hero.control : food.shart)));
     if (food.style) { this.style = food.style; this.stench = food.stench; this.fartFood = food.id; }
@@ -475,6 +479,8 @@ export class Game {
     const kinds = ['birds', 'firetruck', 'hazmat', 'windows'].sort(() => Math.random() - 0.5);
     const count = this.chainScore(c) >= TOXIC * 2 ? 2 : 1;
     this.ui.toast('☢️ TOXIC COMBO! ☢️', 'gold');
+    // toxic clouds hang around longer, but thinner, so you can watch what happens inside them
+    for (const cl of alive) { cl.life += 8; cl.thin = true; }
     for (const kind of kinds.slice(0, count)) {
       const ev = { fx: 'toxic', kind, x: target.x, z: target.z, seed: (Math.random() * 1e9) | 0 };
       if (kind === 'firetruck') {

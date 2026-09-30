@@ -377,6 +377,43 @@ function openHof() {
   show('hof');
 }
 
+// ---------- free replay camera ----------
+const rcam = { yaw: null, pitch: 0.36, dist: 8.5, manual: false };
+const rcamTarget = new THREE.Vector3(), camTmp = new THREE.Vector3();
+const drags = new Map();
+canvas.addEventListener('pointerdown', (e) => {
+  if (!replaying) return;
+  drags.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  const d = drags.get(e.pointerId);
+  if (!replaying || !d) return;
+  if (drags.size === 2) {
+    // two fingers: pinch to zoom
+    const [a, b] = [...drags.values()];
+    const before = Math.hypot(a.x - b.x, a.y - b.y);
+    d.x = e.clientX; d.y = e.clientY;
+    const after = Math.hypot(a.x - b.x, a.y - b.y);
+    rcam.dist = Math.max(3, Math.min(22, rcam.dist * (before / Math.max(1, after))));
+  } else {
+    rcam.yaw -= (e.clientX - d.x) * 0.008;
+    rcam.pitch = Math.max(-0.05, Math.min(1.35, rcam.pitch + (e.clientY - d.y) * 0.006));
+    d.x = e.clientX; d.y = e.clientY;
+  }
+  rcam.manual = true;
+});
+const endDrag = (e) => drags.delete(e.pointerId);
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('wheel', (e) => {
+  if (!replaying) return;
+  e.preventDefault();
+  rcam.dist = Math.max(3, Math.min(22, rcam.dist * (1 + e.deltaY * 0.001)));
+  rcam.manual = true;
+}, { passive: false });
+canvas.addEventListener('dblclick', () => { if (replaying) { rcam.manual = false; rcam.yaw = null; } });
+
 function startReplay(clip, title) {
   if (!clip || clip.frames.length < 2) return;
   replaying = true;
@@ -385,6 +422,9 @@ function startReplay(clip, title) {
   wind.clear();
   happen.clear();
   replay.start(clip);
+  Object.assign(rcam, { yaw: null, pitch: 0.36, dist: 8.5, manual: false });
+  const p0 = clip.frames[0].p;
+  rcamTarget.set(p0[0], 1.2, p0[1]);
   $('rp-title').textContent = title || `${clip.name} · ${fmt(clip.score)} pts`;
   $('replay-ui').classList.remove('hidden');
 }
@@ -479,10 +519,22 @@ function loop(now) {
     chars = replay.chars;
     bubbleList = fr.bubbles;
     const p = fr.states[0], clip = replay.clip;
-    // circle the hero; lean in around the big moment
+    // the camera always follows the hero. By itself it circles slowly and leans in at the big moment;
+    // once you drag, you look around freely (drag = turn, scroll or pinch = zoom, double-click = auto again)
     const near = Math.exp(-(((replay.t - clip.t0 - 0.8) / 1.6) ** 2));
     aim.update(null);
-    orbitCamera(p.x, p.z, 8.5 - near * 3, 3.2 - near * 1.2, p.rot + Math.PI * 0.75 + replay.camSpin * replay.t * 0.25, 1.3);
+    if (!rcam.manual) {
+      if (rcam.yaw === null) rcam.yaw = p.rot + Math.PI * 0.75;
+      rcam.yaw += dt * replay.speed * 0.25 * replay.camSpin;
+      rcam.dist = 8.5 - near * 3;
+      rcam.pitch = 0.36 - near * 0.12;
+    }
+    rcamTarget.lerp(camTmp.set(p.x, 1.2, p.z), Math.min(1, dt * 8));
+    camera.position.set(
+      rcamTarget.x + Math.sin(rcam.yaw) * Math.cos(rcam.pitch) * rcam.dist,
+      Math.max(0.4, rcamTarget.y + Math.sin(rcam.pitch) * rcam.dist),
+      rcamTarget.z + Math.cos(rcam.yaw) * Math.cos(rcam.pitch) * rcam.dist);
+    camera.lookAt(rcamTarget);
     $('rp-progress').firstElementChild.style.width = `${(replay.t / replay.duration) * 100}%`;
     wind.update(dt * replay.speed, camera.position);
     happen.update(dt * replay.speed);

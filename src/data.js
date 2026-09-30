@@ -5,27 +5,27 @@
 // fart / burp: gas added (0-100 scale). shart: shart-meter change. stench: how bad the cloud is.
 // burpStink: garlic-style stink burp strength (0 = clean burp).
 export const FOODS = [
-  { id: 'beans',   emoji: '🫘', name: 'Baked beans',     fart: 38, burp: 0,  style: 'dry',    stench: 1.0, shart: 5,   note: 'Big brassy farts' },
+  { id: 'beans',   emoji: '🫘', name: 'Baked beans',     fart: 38, burp: 0,  style: 'dry',    stench: 1.0, shart: 12,  note: 'Big brassy farts. Shart risk!' },
   { id: 'chili',   emoji: '🌶️', name: 'Chili pepper',    fart: 30, burp: 5,  style: 'wet',    stench: 1.3, shart: 14,  note: 'Hot and wet. Shart risk!' },
-  { id: 'broc',    emoji: '🥦', name: 'Broccoli',        fart: 22, burp: 0,  style: 'dry',    stench: 1.7, shart: 3,   note: 'Toxic stench' },
+  { id: 'broc',    emoji: '🥦', name: 'Broccoli',        fart: 22, burp: 0,  style: 'dry',    stench: 1.7, shart: -8,  note: 'Toxic stench. Green: calms the belly' },
   { id: 'egg',     emoji: '🥚', name: 'Boiled egg',      fart: 22, burp: 5,  style: 'sbd',    stench: 2.3, shart: 4,   note: 'Silent but deadly' },
   { id: 'cheese',  emoji: '🧀', name: 'Old cheese',      fart: 16, burp: 0,  style: 'squeak', stench: 1.6, shart: 5,   note: 'Squeaky and stinky' },
   { id: 'garlic',  emoji: '🧄', name: 'Garlic',          fart: 6,  burp: 20, style: 'dry',    stench: 1.2, shart: 2,   burpStink: 1.8, note: 'Stink burps' },
   { id: 'onion',   emoji: '🧅', name: 'Raw onion',       fart: 12, burp: 15, style: 'dry',    stench: 1.3, shart: 3,   burpStink: 1.3, note: 'Stink burps' },
-  { id: 'pizza',   emoji: '🍕', name: 'Pizza slice',     fart: 16, burp: 12, style: 'dry',    stench: 0.9, shart: 5,   note: 'A bit of everything' },
-  { id: 'kebab',   emoji: '🥙', name: 'Kebab',           fart: 26, burp: 8,  style: 'wet',    stench: 1.2, shart: 11,  note: 'Soggy. Shart risk!' },
-  { id: 'burrito', emoji: '🌯', name: 'Burrito',         fart: 34, burp: 5,  style: 'wet',    stench: 1.3, shart: 13,  note: 'Extreme soggy. Shart risk!' },
-  { id: 'hotdog',  emoji: '🌭', name: 'Hot dog',         fart: 16, burp: 6,  style: 'dry',    stench: 1.0, shart: 6,   note: 'Honest farts' },
+  { id: 'pizza',   emoji: '🍕', name: 'Pizza slice',     fart: 16, burp: 12, style: 'dry',    stench: 0.9, shart: 8,   note: 'A bit of everything. Pepperoni!' },
+  { id: 'kebab',   emoji: '🥙', name: 'Kebab',           fart: 26, burp: 8,  style: 'wet',    stench: 1.2, shart: 16,  note: 'Soggy meat. Big shart risk!' },
+  { id: 'burrito', emoji: '🌯', name: 'Burrito',         fart: 34, burp: 5,  style: 'wet',    stench: 1.3, shart: 18,  note: 'Meat AND beans. Extreme soggy!' },
+  { id: 'hotdog',  emoji: '🌭', name: 'Hot dog',         fart: 16, burp: 6,  style: 'dry',    stench: 1.0, shart: 12,  note: 'Honest farts. Meat: shart risk!' },
   { id: 'peach',   emoji: '🍑', name: 'Dodgy peach',     fart: 14, burp: 0,  style: 'wet',    stench: 0.9, shart: 20,  note: 'Very risky!' },
   { id: 'gelato',  emoji: '🍦', name: 'Gelato',          fart: 12, burp: 6,  style: 'squeak', stench: 0.8, shart: 9,   note: 'Squeakers' },
-  { id: 'salad',   emoji: '🥗', name: 'Salad',           fart: 8,  burp: 0,  style: 'squeak', stench: 0.5, shart: -12, note: 'Little missers. Calms the belly' },
+  { id: 'salad',   emoji: '🥗', name: 'Salad',           fart: 8,  burp: 0,  style: 'squeak', stench: 0.5, shart: -14, note: 'Little missers. Green: calms the belly' },
   { id: 'banana',  emoji: '🍌', name: 'Banana',          fart: 5,  burp: 0,  style: 'dry',    stench: 0.6, shart: -18, note: 'Plugs the hole. Safe!' },
   // drinks
-  { id: 'cola',    emoji: '🥤', name: 'Cola',            fart: 4,  burp: 38, drink: true, shart: 2,  note: 'Massive burps' },
-  { id: 'beer',    emoji: '🍺', name: 'Beer',            fart: 12, burp: 30, drink: true, shart: 5,  style: 'wet', stench: 1.1, note: 'Big burps, beer farts' },
-  { id: 'prosecco',emoji: '🍾', name: 'Prosecco',        fart: 0,  burp: 28, drink: true, shart: 1,  note: 'Classy burps' },
-  { id: 'milk',    emoji: '🥛', name: 'Milk',            fart: 20, burp: 10, drink: true, shart: 17, style: 'wet', stench: 1.4, note: 'Lactose! Shart risk!' },
-  { id: 'espresso',emoji: '☕', name: 'Triple espresso', fart: 6,  burp: 8,  drink: true, shart: 22, note: 'Gets things moving...' },
+  { id: 'cola',    emoji: '🥤', name: 'Cola',            fart: 4,  burp: 38, drink: true, shart: 0,  note: 'Massive burps' },
+  { id: 'beer',    emoji: '🍺', name: 'Beer',            fart: 12, burp: 30, drink: true, shart: 0,  style: 'wet', stench: 1.1, note: 'Big burps, beer farts' },
+  { id: 'prosecco',emoji: '🍾', name: 'Prosecco',        fart: 0,  burp: 28, drink: true, shart: 0,  note: 'Classy burps' },
+  { id: 'milk',    emoji: '🥛', name: 'Milk',            fart: 20, burp: 10, drink: true, shart: 0,  style: 'wet', stench: 1.4, note: 'Lactose: wet farts' },
+  { id: 'espresso',emoji: '☕', name: 'Triple espresso', fart: 6,  burp: 14, drink: true, shart: 0,  note: 'Tiny cup, hot little burps' },
 ];
 // Spawn weights: risky items a bit rarer, drinks common enough for burps.
 export const FOOD_WEIGHT = { beans: 3, chili: 2, broc: 2, egg: 2, cheese: 2, garlic: 2, onion: 2, pizza: 3, kebab: 2, burrito: 2,
@@ -40,7 +40,7 @@ export const FART_NAMES = {
 export const BURP_NAMES = ['Hiccup', 'Burplet', 'Belch', 'Foghorn', 'VOLCANO'];
 
 export const LINES = {
-  fan: ['BRAVO!', 'MAGNIFICO!', 'Legend!', '10/10!', 'Respect, bro!', 'Encore!', 'Now THAT is art!', 'Bellissimo!', 'Absolute unit!', 'Mamma mia, what a tone!', 'Do it again!', 'Grazie maestro!', 'Is that a tuba?!', 'Pure Pavarotti!', 'My grandfather wept.', 'I just got goosebumps.', 'Frame it!', 'Better than the opera!', 'Tell your mamma I said bravo!', 'Standing ovation!', 'That had a chorus!', 'Is he OK? Who cares, BRAVO!', 'That one had a key change!', 'Sir, that was a masterpiece.', 'I am naming my son after that one.', 'Play it again at my wedding!'],
+  fan: ["He's Mary Poopins, y'all!", 'BRAVO!', 'MAGNIFICO!', 'Legend!', '10/10!', 'Respect, bro!', 'Encore!', 'Now THAT is art!', 'Bellissimo!', 'Absolute unit!', 'Mamma mia, what a tone!', 'Do it again!', 'Grazie maestro!', 'Is that a tuba?!', 'Pure Pavarotti!', 'My grandfather wept.', 'I just got goosebumps.', 'Frame it!', 'Better than the opera!', 'Tell your mamma I said bravo!', 'Standing ovation!', 'That had a chorus!', 'Is he OK? Who cares, BRAVO!', 'That one had a key change!', 'Sir, that was a masterpiece.', 'I am naming my son after that one.', 'Play it again at my wedding!'],
   fanBurp: ['What a belch!', 'Rattled my teeth!', 'BRAVO!', 'Pure bass!', 'Champion!', 'Burp of the year!', 'The windows shook!', 'Did the fountain just ripple?', 'Somebody give him a microphone!', 'I felt it in my wallet!', 'That burp paid rent!'],
   meh: ['Dude...', 'Really?!', 'Grow up.', 'Not cool, man.', 'Seriously?', 'Classy.', '*sigh*', 'Wow. Just wow.', 'My lawyer will hear about this.', 'I was eating a sandwich...', 'Was that a duck?', 'Unbelievable.', 'I need a new nose.', 'Not in front of the kids!', 'This is a family piazza!', 'I paid for this view.', 'Is this an art installation?', 'My dog does that. My dog is ashamed.', 'I am calling my cousin. He is a lawyer.'],
   curse: ['#@$%&!', '%&@#!!', 'BUTT PIG!', 'PIG!', 'MY HAIR!!', '@#$%!!', 'Che schifo!', 'Animal!', '$#@!% you!', 'Disgusting!', 'I just had it DONE!', 'My perm! My PERM!', 'Three hours at the salon!', 'I look like a broom!', 'You exhaust pipe!', 'Flatulent walrus!', '#@$! gas bag!', 'My hairspray is melting!', 'My blow-dry cost fifty euro!', 'I look like a startled cat!'],
@@ -53,7 +53,7 @@ export const LINES = {
   blast: ['WHOA!', 'MY FACE!', 'I felt that!', 'It went in my mouth!', 'My ears are ringing!', 'I heard it in my teeth!', 'Warm... it was WARM!', 'My shirt moved!', 'Point-blank!'],
   womanMeh: ['Butt pig.', 'Ugh. Pig.', 'Disgusting.', 'Men...', 'Seriously?!', 'Animal.', 'Absolutely vile.', 'Not on a Sunday!', 'My husband does that too.', 'Tell your mother!', 'Some people...', 'My ex did that. That is why he is my ex.', 'I just ate lunch!', 'Mother warned me about men like you.'],
   chat: ['Blah blah blah...', 'Ciao bella!', 'Did you see the match?', 'Ha ha ha!', 'Mamma mia, the prices!', 'Espresso?', 'No way!', 'And then he said...', 'Ma dai!', 'Che bello!', 'My mother-in-law...', 'Ha! Classic.', 'Allora...', 'Bellissimo!', 'Did you hear about Luigi?', 'The prices, madonna!', 'Juventus again...', 'My knee is killing me.', 'Is it going to rain?', 'Nice shoes!', 'Pizza tonight?', 'My cousin in America...', 'Look at that pigeon.', 'Ecco!', 'Is it me, or does it smell like cabbage?', 'Shh, here comes the gas man.'],
-  fanCombo: ['CHAIN FARTER!', 'He does not stop!', 'COMBO!', 'Again?! LEGEND!', 'Machine gun!', 'Both ends! Respect!', 'It is a symphony!', 'He is playing a SONG!', 'Keep going! KEEP GOING!', 'Human trumpet!', 'The man is a machine!'],
+  fanCombo: ["He's Mary Poopins, y'all!", 'CHAIN FARTER!', 'He does not stop!', 'COMBO!', 'Again?! LEGEND!', 'Machine gun!', 'Both ends! Respect!', 'It is a symphony!', 'He is playing a SONG!', 'Keep going! KEEP GOING!', 'Human trumpet!', 'The man is a machine!'],
   fanClose: ['RIGHT IN THE FACE! LEGEND!', 'I FELT THE BASS!', 'Front row seats!'],
   // the fancy lady with the selfie stick
   selfie: ['#piazzavibes', 'Say cheese!', 'Duck face!', '#blessed', 'One more...', 'Filter: Tuscany', 'Like and subscribe!', 'My good side...'],
