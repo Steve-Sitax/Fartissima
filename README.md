@@ -68,3 +68,20 @@ All recordings come from Freesound with the CC0 licence. See [CREDITS.md](CREDIT
 | `voices.py` | Crowd voices and piazza chatter |
 | `analyze.py`, `wave.py` | Measure clips, draw waveforms and spectrograms |
 | `synth_test.mjs` | Render artificial farts to WAV for comparison |
+
+## Licence
+
+Copyright (C) 2026 Steve-Sitax
+
+The game code is free software under the **GNU General Public License v3.0 or later**.
+See [LICENSE](LICENSE).
+
+Parts that come from others keep their own licence:
+
+| Part | Licence | Where it is credited |
+|---|---|---|
+| [three.js](https://threejs.org) (3D engine, bundled) | MIT | [public/THIRD-PARTY-NOTICES.txt](public/THIRD-PARTY-NOTICES.txt), shipped with the game |
+| Recorded sounds (Freesound) | CC0, public domain | [CREDITS.md](CREDITS.md) |
+| Fonts Bangers and Nunito (loaded from Google Fonts, not bundled) | SIL Open Font License 1.1 | [CREDITS.md](CREDITS.md) |
+
+The music, the artificial farts, the 3D models and the app icon are made in this project.
