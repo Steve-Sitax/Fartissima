@@ -4,7 +4,7 @@
 // { x, z, rot, walk, move, pose, hair, green, red, stain } - the same numbers the replay stores.
 import * as THREE from 'three';
 
-export const POSE = { NORMAL: 0, THUMBS: 1, FLEE: 2, CURSE: 3, SHOCK: 4, FART: 5, BURP: 6, SHART: 7, EAT: 8, TALK: 9 };
+export const POSE = { NORMAL: 0, THUMBS: 1, FLEE: 2, CURSE: 3, SHOCK: 4, FART: 5, BURP: 6, SHART: 7, EAT: 8, TALK: 9, DAZED: 10, SELFIE: 11, CHASE: 12, MEASURE: 13, WRITE: 14 };
 
 function rng(seed) {
   let a = seed >>> 0;
@@ -115,7 +115,15 @@ export class Character {
     const pickC = (arr) => arr[(r() * arr.length) | 0];
     let look;
     if (kind === 'hero') look = HERO_LOOKS[variant] || HERO_LOOKS.fat;
-    else if (kind === 'woman') {
+    else if (kind === 'lady') {
+      // the fancy lady: long dress, big hat, pearls, sunglasses and a selfie stick
+      look = { s: 0.98, build: 'woman', skin: '#f5d6b8', top: '#8e1b4a', skirt: '#8e1b4a', sleeves: 'none', bottom: 'dress', pants: '#8e1b4a', shoes: '#111',
+        headR: 0.148, hair: 'bun', hairColor: '#d9a441', hat: '#f5e6c8', hatBand: '#8e1b4a', pearls: true, shades: true, lips: true, selfie: true };
+    } else if (kind === 'hazmat') {
+      // nuclear team: white suit, yellow boots, gas mask, a Geiger counter or a clipboard
+      look = { s: 1, build: 'chubby', skin: '#f2c9a0', top: '#f4f4f4', sleeves: 'long', bottom: 'pants', pants: '#f4f4f4', shoes: '#f1c40f',
+        headR: 0.155, hair: 'hood', hairColor: '#f4f4f4', mask: true, tool: variant === 'writer' ? 'clipboard' : 'geiger' };
+    } else if (kind === 'woman') {
       const dress = r() < 0.35;
       look = { s: 0.92 + r() * 0.08, build: r() < 0.35 ? 'curvy' : 'woman', skin: pickC(SKINS), top: pickC(SHIRTS), sleeves: r() < 0.5 ? 'short' : 'none',
         bottom: dress ? 'dress' : r() < 0.7 ? 'skirt' : 'pants', skirt: pickC(SKIRTS), pants: pickC(PANTS), shoes: pickC(['#c0392b', '#111', '#8e44ad', '#f5f5f5']),
@@ -223,6 +231,25 @@ export class Character {
     };
     ({ sh: this.armL, elbow: this.elbowL } = makeArm(1));
     ({ sh: this.armR, elbow: this.elbowR } = makeArm(-1));
+    if (L.selfie) {
+      // selfie stick with a phone on the end
+      const st = new THREE.CylinderGeometry(0.012, 0.012, 0.85, 6);
+      st.translate(0, -0.42, 0);
+      mesh(st, toon('#222'), this.elbowR, 0, -0.29, 0.02, true);
+      mesh(new THREE.BoxGeometry(0.08, 0.15, 0.015), toon('#111'), this.elbowR, 0, -1.16, 0.03, true);
+      this.selfie = true;
+    }
+    if (L.tool === 'geiger') {
+      mesh(new THREE.BoxGeometry(0.12, 0.08, 0.18), toon('#f1c40f'), this.elbowR, 0, -0.33, 0.06, true);
+      const wand = new THREE.CylinderGeometry(0.015, 0.02, 0.28, 6);
+      wand.rotateX(Math.PI / 2);
+      mesh(wand, toon('#333'), this.elbowR, 0, -0.33, 0.28);
+    } else if (L.tool === 'clipboard') {
+      const cb = mesh(new THREE.BoxGeometry(0.22, 0.3, 0.02), toon('#8b5a2b'), this.elbowL, 0, -0.3, 0.1, true);
+      cb.rotation.x = -0.9;
+      const paper = mesh(new THREE.BoxGeometry(0.18, 0.24, 0.005), toon('#ffffff'), cb, 0, 0, 0.013);
+      void paper;
+    }
     if (L.cane) {
       const wood = toon('#5a3a1e');
       const c = new THREE.CylinderGeometry(0.015, 0.015, 0.78, 6);
@@ -303,6 +330,16 @@ export class Character {
         bill.rotation.x = -0.2;
         break;
       }
+      case 'bun':
+        cap(0, Math.PI * 0.55, 1.06);
+        mesh(new THREE.SphereGeometry(hr * 0.4, 12, 10), hairM, head, 0, hy + hr * 0.45, -hr * 0.85, true);
+        break;
+      case 'hood': {
+        // hazmat hood: covers the whole head, only the mask shows
+        const hood = mesh(new THREE.SphereGeometry(hr * 1.18, 20, 14), hairM, head, 0, hy, -hr * 0.02, true);
+        hood.scale.set(1, 1.1, 1);
+        break;
+      }
       case 'long': {
         cap(0, Math.PI * 0.55, 1.08);
         // hair strands: neat when calm, blown wild after a close blast
@@ -318,6 +355,29 @@ export class Character {
           this.strands.push({ piv, neat, wild, wob: r() * 6 });
         }
         break;
+      }
+    }
+    if (L.hat) {
+      const hm = toon(L.hat);
+      const brim = mesh(new THREE.CylinderGeometry(hr * 2.3, hr * 2.3, hr * 0.06, 28), hm, head, 0, hy + hr * 0.62, 0, true);
+      brim.rotation.x = -0.1;
+      mesh(new THREE.CylinderGeometry(hr * 0.95, hr * 1.02, hr * 0.55, 22), hm, head, 0, hy + hr * 0.9, -hr * 0.05, true);
+      mesh(new THREE.CylinderGeometry(hr * 1.03, hr * 1.03, hr * 0.14, 22), toon(L.hatBand), head, 0, hy + hr * 0.72, -hr * 0.05);
+    }
+    if (L.pearls) {
+      for (let k = 0; k < 14; k++) {
+        const a = (k / 14) * Math.PI * 2;
+        mesh(new THREE.SphereGeometry(0.014, 6, 4), toon('#fffaf0'), torso, Math.sin(a) * 0.075, neckY - 0.01 - Math.max(0, Math.cos(a)) * 0.04, Math.cos(a) * 0.06);
+      }
+    }
+    if (L.mask) {
+      // gas mask: a dark visor and two filter cans
+      const visor = mesh(new THREE.SphereGeometry(hr * 0.75, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), toon('#223344'), head, 0, hy + hr * 0.05, hr * 0.62);
+      visor.rotation.x = Math.PI / 2;
+      visor.scale.set(1, 0.5, 0.8);
+      for (const sx of [-1, 1]) {
+        const can = mesh(new THREE.CylinderGeometry(hr * 0.2, hr * 0.2, hr * 0.3, 10), toon('#555'), head, sx * hr * 0.42, hy - hr * 0.45, hr * 0.95, true);
+        can.rotation.x = Math.PI / 2;
       }
     }
     if (L.flatCap) {
@@ -360,6 +420,11 @@ export class Character {
     this.hip.rotation.set(0, 0, Math.sin(w) * 0.05 * mv);
     this.torso.rotation.set(0, Math.sin(w) * 0.08 * mv, 0);
     this.head.rotation.set(0, 0, 0);
+    if (this.selfie && s.pose === POSE.NORMAL) {
+      // holds the selfie stick forward like a sceptre
+      this.armR.rotation.set(-0.35, 0, -0.1);
+      this.elbowR.rotation.set(-1.25, 0, 0);
+    }
     if (this.hunch && s.pose === POSE.NORMAL) {
       // an old back: bent forward, head up, the cane taps along
       this.torso.rotation.x = this.hunch;
@@ -441,6 +506,51 @@ export class Character {
         this.armR.rotation.set(-1.1, 0, 0.3);
         this.elbowR.rotation.set(-2 + Math.sin(t * 18) * 0.25, 0, 0);
         mouthOpen = 1 + Math.abs(Math.sin(t * 18));
+        break;
+      }
+      case POSE.DAZED: {
+        // seeing stars: wobbling in circles, arms dangling
+        this.torso.rotation.set(Math.cos(t * 6) * 0.12, 0, Math.sin(t * 6) * 0.15);
+        this.head.rotation.set(Math.cos(t * 6 + 1) * 0.2, 0, Math.sin(t * 6 + 1) * 0.3);
+        this.armL.rotation.set(0, 0, 0.25 + Math.sin(t * 6) * 0.2); this.armR.rotation.set(0, 0, -0.25 + Math.sin(t * 6) * 0.2);
+        this.elbowL.rotation.set(0, 0, 0); this.elbowR.rotation.set(0, 0, 0);
+        this.kneeL.rotation.set(0.25, 0, 0); this.kneeR.rotation.set(0.25, 0, 0);
+        mouthOpen = 1.2;
+        break;
+      }
+      case POSE.SELFIE: {
+        // stick up and out, head tilted, duck face
+        this.armR.rotation.set(-2.2, 0, -0.5);
+        this.elbowR.rotation.set(-0.15, 0, 0);
+        this.armL.rotation.set(0.1, 0, 0.5);
+        this.elbowL.rotation.set(-1.7, 0, 0);
+        this.head.rotation.set(-0.1, 0.25, 0.2);
+        mouthOpen = 0.9;
+        break;
+      }
+      case POSE.CHASE: {
+        // stick raised high, ready to strike
+        this.armR.rotation.set(-2.9 + Math.sin(t * 16) * 0.35, 0, -0.15);
+        this.elbowR.rotation.set(-0.4 + Math.sin(t * 16) * 0.3, 0, 0);
+        this.armL.rotation.set(-sw * 1.2, 0, 0.3);
+        this.torso.rotation.x = 0.15;
+        mouthOpen = 2;
+        break;
+      }
+      case POSE.MEASURE: {
+        // Geiger counter held out, sweeping
+        this.armR.rotation.set(-1.2 + Math.sin(t * 3) * 0.2, Math.sin(t * 2) * 0.4, -0.1);
+        this.elbowR.rotation.set(-0.2, 0, 0);
+        this.torso.rotation.x = 0.25;
+        this.head.rotation.x = 0.3;
+        break;
+      }
+      case POSE.WRITE: {
+        this.armL.rotation.set(-0.9, 0, 0.2);
+        this.elbowL.rotation.set(-0.9, 0, 0);
+        this.armR.rotation.set(-0.8, 0, -0.1);
+        this.elbowR.rotation.set(-1.2 + Math.sin(t * 20) * 0.1, 0, 0);
+        this.head.rotation.x = 0.35;
         break;
       }
       case POSE.TALK: {

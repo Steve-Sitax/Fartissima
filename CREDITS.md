@@ -186,3 +186,13 @@ No attribution is required. We list the creators anyway, because they earned it.
 | [622412](https://freesound.org/s/622412/) | game_pootlong_02.wav | Jixolros |
 | [623166](https://freesound.org/s/623166/) | game_wetpoot_06.wav | Jixolros |
 | [623168](https://freesound.org/s/623168/) | game_pootlong_06.wav | Jixolros |
+
+## Event sounds
+
+| Freesound ID | Title | Creator |
+|---|---|---|
+| [71778](https://freesound.org/s/71778/) | Steam Whistle.mp3 | Bidone |
+| [139324](https://freesound.org/s/139324/) | Parisian fire truck siren | Mxsmanic |
+| [159347](https://freesound.org/s/159347/) | Vacuum Cleaner 3 - sucking short | Huminaatio |
+| [528250](https://freesound.org/s/528250/) | pigeons_fly away_ wing flaps_CsG | csaszi |
+| [564230](https://freesound.org/s/564230/) | Huge Slap in the Face | njjjjjjjjjjjjjjjjjjjjjjjj |

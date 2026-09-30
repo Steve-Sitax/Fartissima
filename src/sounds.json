@@ -655,6 +655,36 @@
    "wet": 8.6
   }
  ],
+ "fx_pigeons": [
+  {
+   "f": "fx_pigeons",
+   "d": 4.2
+  }
+ ],
+ "fx_siren": [
+  {
+   "f": "fx_siren",
+   "d": 5.78
+  }
+ ],
+ "fx_slap": [
+  {
+   "f": "fx_slap",
+   "d": 1.28
+  }
+ ],
+ "fx_vacuum": [
+  {
+   "f": "fx_vacuum",
+   "d": 5.0
+  }
+ ],
+ "fx_whistle": [
+  {
+   "f": "fx_whistle",
+   "d": 3.19
+  }
+ ],
  "gino_burp_1": [
   {
    "f": "gburp_671214_0",

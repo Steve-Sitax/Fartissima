@@ -40,21 +40,32 @@ export const FART_NAMES = {
 export const BURP_NAMES = ['Hiccup', 'Burplet', 'Belch', 'Foghorn', 'VOLCANO'];
 
 export const LINES = {
-  fan: ['BRAVO!', 'MAGNIFICO!', 'Legend!', '10/10!', 'Respect, bro!', 'Encore!', 'Now THAT is art!', 'Bellissimo!', 'Absolute unit!', 'Mamma mia, what a tone!', 'Do it again!', 'Grazie maestro!'],
-  fanBurp: ['What a belch!', 'Rattled my teeth!', 'BRAVO!', 'Pure bass!', 'Champion!', 'Burp of the year!'],
-  meh: ['Dude...', 'Really?!', 'Grow up.', 'Not cool, man.', 'Seriously?', 'Classy.', '*sigh*'],
-  curse: ['#@$%&!', '%&@#!!', 'BUTT PIG!', 'PIG!', 'MY HAIR!!', '@#$%!!', 'Che schifo!', 'Animal!', '$#@!% you!', 'Disgusting!', 'I just had it DONE!'],
-  flee: ['EWWW!', 'Mamma mia!', 'My eyes!', 'What died?!', 'GAS! GAS! GAS!', 'I can taste it!', 'Run!', 'Oh no no no', '*gag*', 'Who did that?!', 'It burns!'],
+  fan: ['BRAVO!', 'MAGNIFICO!', 'Legend!', '10/10!', 'Respect, bro!', 'Encore!', 'Now THAT is art!', 'Bellissimo!', 'Absolute unit!', 'Mamma mia, what a tone!', 'Do it again!', 'Grazie maestro!', 'Is that a tuba?!', 'Pure Pavarotti!', 'My grandfather wept.', 'I just got goosebumps.', 'Frame it!', 'Better than the opera!', 'Tell your mamma I said bravo!', 'Standing ovation!', 'That had a chorus!', 'Is he OK? Who cares, BRAVO!', 'That one had a key change!', 'Sir, that was a masterpiece.', 'I am naming my son after that one.', 'Play it again at my wedding!'],
+  fanBurp: ['What a belch!', 'Rattled my teeth!', 'BRAVO!', 'Pure bass!', 'Champion!', 'Burp of the year!', 'The windows shook!', 'Did the fountain just ripple?', 'Somebody give him a microphone!', 'I felt it in my wallet!', 'That burp paid rent!'],
+  meh: ['Dude...', 'Really?!', 'Grow up.', 'Not cool, man.', 'Seriously?', 'Classy.', '*sigh*', 'Wow. Just wow.', 'My lawyer will hear about this.', 'I was eating a sandwich...', 'Was that a duck?', 'Unbelievable.', 'I need a new nose.', 'Not in front of the kids!', 'This is a family piazza!', 'I paid for this view.', 'Is this an art installation?', 'My dog does that. My dog is ashamed.', 'I am calling my cousin. He is a lawyer.'],
+  curse: ['#@$%&!', '%&@#!!', 'BUTT PIG!', 'PIG!', 'MY HAIR!!', '@#$%!!', 'Che schifo!', 'Animal!', '$#@!% you!', 'Disgusting!', 'I just had it DONE!', 'My perm! My PERM!', 'Three hours at the salon!', 'I look like a broom!', 'You exhaust pipe!', 'Flatulent walrus!', '#@$! gas bag!', 'My hairspray is melting!', 'My blow-dry cost fifty euro!', 'I look like a startled cat!'],
+  flee: ['EWWW!', 'Mamma mia!', 'My eyes!', 'What died?!', 'GAS! GAS! GAS!', 'I can taste it!', 'Run!', 'Oh no no no', '*gag*', 'Who did that?!', 'It burns!', 'My eyebrows are gone!', 'The pigeons are fleeing too!', 'Call the priest!', 'It follows me!', 'Tastes like cabbage!', 'Nooo, my gelato!', 'It is in my clothes!', 'I see colours!', 'Mamma, the smell!', 'Hold your breath!', 'I can hear it AND smell it!', 'Save the children! And my shoes!', 'My nose hair just fell out!', 'It is following my Wi-Fi!', 'Not the linen! NOT THE LINEN!'],
   empty: ['...nothing.', '*pfft*... nope.', 'Tank empty!', 'Need food!'],
   eat: ['Mmm!', 'Nom nom', 'Delizioso!', '*gulp*', 'More!', 'Yum!'],
   shart: ['Uh oh.', 'Oh no.', '...that was not air.'],
-  hero: ['Scusi!', 'Better out than in!', 'Pardon my Italian.', 'Bellissimo.', 'Still got it.', 'That one was for you, mamma!', 'Ahhh...', 'Excuse me!', 'Grazie, grazie.'],
+  hero: ['Scusi!', 'Better out than in!', 'Pardon my Italian.', 'Bellissimo.', 'Still got it.', 'That one was for you, mamma!', 'Ahhh...', 'Excuse me!', 'Grazie, grazie.', 'A classic.', 'Vintage.', 'Sorry, not sorry.', 'You are welcome.', 'Nature called. I answered.'],
   strain: ['Nnnngh!', 'Careful Gino...', 'Hnnngh!'],
-  blast: ['WHOA!', 'MY FACE!', 'I felt that!', 'It went in my mouth!'],
-  womanMeh: ['Butt pig.', 'Ugh. Pig.', 'Disgusting.', 'Men...', 'Seriously?!', 'Animal.'],
-  chat: ['Blah blah blah...', 'Ciao bella!', 'Did you see the match?', 'Ha ha ha!', 'Mamma mia, the prices!', 'Espresso?', 'No way!', 'And then he said...', 'Ma dai!', 'Che bello!', 'My mother-in-law...', 'Ha! Classic.', 'Allora...', 'Bellissimo!'],
-  fanCombo: ['CHAIN FARTER!', 'He does not stop!', 'COMBO!', 'Again?! LEGEND!', 'Machine gun!', 'Both ends! Respect!'],
+  blast: ['WHOA!', 'MY FACE!', 'I felt that!', 'It went in my mouth!', 'My ears are ringing!', 'I heard it in my teeth!', 'Warm... it was WARM!', 'My shirt moved!', 'Point-blank!'],
+  womanMeh: ['Butt pig.', 'Ugh. Pig.', 'Disgusting.', 'Men...', 'Seriously?!', 'Animal.', 'Absolutely vile.', 'Not on a Sunday!', 'My husband does that too.', 'Tell your mother!', 'Some people...', 'My ex did that. That is why he is my ex.', 'I just ate lunch!', 'Mother warned me about men like you.'],
+  chat: ['Blah blah blah...', 'Ciao bella!', 'Did you see the match?', 'Ha ha ha!', 'Mamma mia, the prices!', 'Espresso?', 'No way!', 'And then he said...', 'Ma dai!', 'Che bello!', 'My mother-in-law...', 'Ha! Classic.', 'Allora...', 'Bellissimo!', 'Did you hear about Luigi?', 'The prices, madonna!', 'Juventus again...', 'My knee is killing me.', 'Is it going to rain?', 'Nice shoes!', 'Pizza tonight?', 'My cousin in America...', 'Look at that pigeon.', 'Ecco!', 'Is it me, or does it smell like cabbage?', 'Shh, here comes the gas man.'],
+  fanCombo: ['CHAIN FARTER!', 'He does not stop!', 'COMBO!', 'Again?! LEGEND!', 'Machine gun!', 'Both ends! Respect!', 'It is a symphony!', 'He is playing a SONG!', 'Keep going! KEEP GOING!', 'Human trumpet!', 'The man is a machine!'],
   fanClose: ['RIGHT IN THE FACE! LEGEND!', 'I FELT THE BASS!', 'Front row seats!'],
+  // the fancy lady with the selfie stick
+  selfie: ['#piazzavibes', 'Say cheese!', 'Duck face!', '#blessed', 'One more...', 'Filter: Tuscany', 'Like and subscribe!', 'My good side...'],
+  ladyAngry: ['How DARE you!', 'My selfie is RUINED!', 'You BRUTE!', 'Come here, you animal!', 'This dress is GUCCI!', 'I have 2 million followers!'],
+  ladyHit: ['Take THAT!', 'Uncultured swine!', 'UNFOLLOW!', 'BLOCKED!'],
+  ladyGiveUp: ['Ugh! Unfollow!', 'You are not worth my heels.', 'Blocked. Reported.'],
+  dazed: ['OUCH!', 'Stars... pretty stars...', 'Worth it.', 'Mamma...', 'Who turned off the lights?'],
+  // toxic-combo events
+  hazmat: ['9000 micro-farts!', 'Off the scale!', 'Write that down!', 'Worse than 1986!', 'Evacuate the piazza!', 'Is that... beans?', 'Do NOT breathe!', 'Seal the fountain!'],
+  notes: ['Noted.', 'Beans. Definitely beans.', '*scribble scribble*', 'Level: Gino.'],
+  fireman: ['Stand back! Toxic gas!', 'Suck it up, boys!', 'Hose ON!', 'Worst call this week!'],
+  window: ['?', '??', 'Who ate the beans?!', 'Close the window!', 'Is it the sewer?', 'Mamma mia...', 'Somebody call the mayor!', 'Not again!'],
 };
 
 export const pick = (a) => a[(Math.random() * a.length) | 0];

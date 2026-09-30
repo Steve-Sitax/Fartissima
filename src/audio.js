@@ -217,6 +217,38 @@ export class Sfx {
     }
   }
 
+  // A small bird hitting the cobbles.
+  thud() {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+    g.gain.setValueAtTime(0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    o.connect(g).connect(this.master);
+    o.start(t); o.stop(t + 0.16);
+  }
+
+  // Geiger counter: dry clicks that get faster and faster.
+  geiger(seconds = 4) {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t0 = ctx.currentTime;
+    const click = ctx.createBuffer(1, 90, ctx.sampleRate), d = click.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    let t = 0;
+    while (t < seconds) {
+      const rate = 6 + 70 * Math.pow(t / seconds, 2);          // clicks per second
+      t += -Math.log(1 - Math.random()) / rate;
+      const s = ctx.createBufferSource();
+      s.buffer = click;
+      const g = ctx.createGain();
+      g.gain.value = 0.3;
+      s.connect(g).connect(this.master);
+      s.start(t0 + t);
+    }
+  }
+
   // Glug glug: falling sine blips.
   drink() {
     if (!this.ctx) return;

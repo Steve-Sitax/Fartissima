@@ -3,12 +3,13 @@ import * as THREE from 'three';
 import './style.css';
 import { buildWorld, HALF } from './world.js';
 import { Sfx } from './audio.js';
-import { Game, BLAST_COS } from './game.js';
+import { Game, BLAST_COS, CHAIN_WINDOW } from './game.js';
 import { CloudRenderer, cloudSnap } from './clouds.js';
 import { FoodRenderer } from './food.js';
 import { BubbleLayer } from './bubbles.js';
 import { Replay } from './replay.js';
 import { WindFX, AimGuide } from './fx.js';
+import { Happenings } from './events.js';
 import { FOODS, FART_NAMES, BURP_NAMES, HEROES, heroById } from './data.js';
 import { Character, POSE, newState } from './characters.js';
 import { fartParams, shartParams } from './synth.js';
@@ -31,6 +32,7 @@ const bubbles = new BubbleLayer($('bubbles'));
 const wind = new WindFX(scene);
 const aim = new AimGuide(scene, BLAST_COS);
 const sfx = new Sfx();
+const happen = new Happenings(scene, sfx);
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -75,7 +77,9 @@ const fmt = (n) => n.toLocaleString('en-US');
 // ---------- events: sounds and effects (live and in replays) ----------
 const camRight = new THREE.Vector3();
 function handleEvent(ev, speed = 1) {
-  if (ev.fx) { wind.spawn(ev); return; }
+  if (ev.fx === 'wind') { wind.spawn(ev); return; }
+  if (ev.fx === 'toxic') { happen.spawn(ev, camera); return; }
+  if (ev.fx === 'train') { fartTrain(ev.n); return; }
   if (ev.say) return; // skip calls stored in older replays
   if (ev.synth) { sfx[ev.synth]?.(); return; }
   let pan = 0, dist = 1;
@@ -207,6 +211,7 @@ async function startGame(heroId = game.hero.id) {
   lineup.visible = false;
   game.group.visible = true;
   wind.clear();
+  happen.clear();
   game.reset(heroId);
   sfx.settings.hero = heroId;
   sfx.saveSettings();
@@ -356,7 +361,7 @@ $('btn-rp-combo').onclick = () => startReplay(game.best?.clip);
 $('btn-rp-shart').onclick = () => startReplay(game.shartClip, 'SHART CAM');
 $('btn-hof-combo').onclick = () => startReplay(hof.combo?.clip);
 $('btn-rp-close').onclick = stopReplay;
-$('btn-rp-again').onclick = () => { wind.clear(); replay.restart(); };
+$('btn-rp-again').onclick = () => { wind.clear(); happen.clear(); replay.restart(); };
 $('btn-rp-slow').onclick = () => {
   replay.speed = replay.speed === 1 ? 0.5 : 1;
   $('btn-rp-slow').textContent = `🐌 Slow-mo: ${replay.speed === 1 ? 'off' : 'on'}`;
@@ -378,6 +383,7 @@ function startReplay(clip, title) {
   document.body.classList.add('replaying');
   game.group.visible = false;
   wind.clear();
+  happen.clear();
   replay.start(clip);
   $('rp-title').textContent = title || `${clip.name} · ${fmt(clip.score)} pts`;
   $('replay-ui').classList.remove('hidden');
@@ -387,9 +393,22 @@ function stopReplay() {
   replaying = false;
   replay.stop();
   wind.clear();
+  happen.clear();
   game.group.visible = true;
   document.body.classList.remove('replaying');
   $('replay-ui').classList.add('hidden');
+}
+
+// ---------- fart train: five farts in a row inside one combo ----------
+function fartTrain(n) {
+  const el = $('train');
+  el.innerHTML = `<span class="loco">🚂</span>${'<span class="car">💨</span>'.repeat(Math.min(n, 10))}<b>${n >= 10 ? 'DOUBLE FART TRAIN!' : 'CHOO CHOO! FART TRAIN!'}</b>`;
+  el.classList.remove('hidden');
+  el.style.animation = 'none';
+  void el.offsetWidth;   // restart the ride
+  el.style.animation = '';
+  clearTimeout(fartTrain.t);
+  fartTrain.t = setTimeout(() => el.classList.add('hidden'), 4200);
 }
 
 // ---------- HUD ----------
@@ -413,7 +432,11 @@ function updateHud() {
   }
   const live = g.liveCombo();
   $('live-score').classList.toggle('hidden', !live);
-  if (live) $('live-score').textContent = `${live.name}  ${fmt(live.score)}` + (live.people > 1 ? `  · ${live.people} hit` : '');
+  if (live) $('live-score').textContent = `${live.toxic ? '☢️ ' : ''}${live.name}  ${fmt(live.score)}` + (live.people > 1 ? `  · ${live.people} hit` : '');
+  // combo timer: how long you still have to add the next fart or burp to this combo
+  const open = live && live.window > 0;
+  $('combo-timer').classList.toggle('hidden', !open);
+  if (open) $('combo-timer').firstElementChild.style.width = `${(live.window / CHAIN_WINDOW) * 100}%`;
 }
 
 // ---------- camera ----------
@@ -462,6 +485,7 @@ function loop(now) {
     orbitCamera(p.x, p.z, 8.5 - near * 3, 3.2 - near * 1.2, p.rot + Math.PI * 0.75 + replay.camSpin * replay.t * 0.25, 1.3);
     $('rp-progress').firstElementChild.style.width = `${(replay.t / replay.duration) * 100}%`;
     wind.update(dt * replay.speed, camera.position);
+    happen.update(dt * replay.speed);
   } else {
     if (state === 'play') game.update(dt, readInput(dt));
     else if (state !== 'pause') game.update(dt, null, true);
@@ -480,10 +504,10 @@ function loop(now) {
     else orbitCamera(0, 0, 26, 11, t * 0.05, 2);
     if (state === 'play') updateHud();
     aim.update(state === 'play' ? game.chargeInfo() : null, gs, t);
-    if (state !== 'pause') wind.update(dt, camera.position);
+    if (state !== 'pause') { wind.update(dt, camera.position); happen.update(dt); }
   }
   renderer.render(scene, camera);
-  bubbles.draw(state === 'choose' && !replaying ? [] : bubbleList, chars, camera, window.innerWidth, window.innerHeight);
+  bubbles.draw(state === 'choose' && !replaying ? [] : bubbleList.concat(happen.bubbles()), chars, camera, window.innerWidth, window.innerHeight);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
