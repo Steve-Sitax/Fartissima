@@ -41,6 +41,8 @@ export class WindFX {
     this.dropGeo = new THREE.SphereGeometry(0.05, 6, 4);
     this.dropMat = new THREE.MeshBasicMaterial({ color: '#e8f4ff', transparent: true, opacity: 0.85 });
     this.drops = [];
+    this.pukeMat = new THREE.MeshBasicMaterial({ color: '#a9c23f' });
+    this.puddles = [];
   }
 
   // ev: { fx: 'wind', x, y, z, dx, dz, tier, kind: 'fart' | 'burp' | 'shart', color }
@@ -86,7 +88,27 @@ export class WindFX {
     }
   }
 
+  // Someone being sick: a green-yellow arc from the mouth and a puddle that stays a while.
+  spawnPuke(ev) {
+    for (let i = 0; i < 26; i++) {
+      const m = new THREE.Mesh(this.dropGeo, this.pukeMat);
+      m.position.set(ev.x, ev.y, ev.z);
+      m.scale.setScalar(1.2 + Math.random() * 1.2);
+      this.scene.add(m);
+      const a = Math.atan2(ev.dx, ev.dz) + (Math.random() - 0.5) * 0.5, v = 1.2 + Math.random() * 1.6;
+      this.drops.push({ m, vx: Math.sin(a) * v, vy: 0.5 + Math.random() * 1.2, vz: Math.cos(a) * v, age: -i * 0.04 });
+    }
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(0.55, 18), new THREE.MeshBasicMaterial({ color: '#b5c93a', transparent: true, opacity: 0.85, depthWrite: false }));
+    pool.rotation.x = -Math.PI / 2;
+    pool.position.set(ev.x + ev.dx * 0.5, 0.03, ev.z + ev.dz * 0.5);
+    pool.scale.setScalar(0.1);
+    this.scene.add(pool);
+    this.puddles.push({ m: pool, age: 0 });
+  }
+
   clear() {
+    for (const q of this.puddles) { this.scene.remove(q.m); q.m.material.dispose(); }
+    this.puddles.length = 0;
     this.p.length = 0;
     for (const r of this.rings) this.scene.remove(r.m);
     for (const d of this.drops) this.scene.remove(d.m);
@@ -140,8 +162,17 @@ export class WindFX {
       if (f >= 1) { this.scene.remove(q.m); q.m.material.dispose(); return false; }
       return true;
     });
+    this.puddles = this.puddles.filter((q) => {
+      q.age += dt;
+      q.m.scale.setScalar(Math.min(1, 0.1 + q.age * 0.9));
+      q.m.material.opacity = 0.85 * Math.min(1, (10 - q.age) / 2);
+      if (q.age > 10) { this.scene.remove(q.m); q.m.material.dispose(); return false; }
+      return true;
+    });
     this.drops = this.drops.filter((d) => {
       d.age += dt;
+      if (d.age < 0) { d.m.visible = false; return true; }
+      d.m.visible = true;
       d.vy -= 9.8 * dt;
       d.m.position.x += d.vx * dt; d.m.position.y += d.vy * dt; d.m.position.z += d.vz * dt;
       if (d.m.position.y < 0.02 || d.age > 2) { this.scene.remove(d.m); return false; }

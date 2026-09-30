@@ -66,6 +66,19 @@ export const LINES = {
   notes: ['Noted.', 'Beans. Definitely beans.', '*scribble scribble*', 'Level: Gino.'],
   fireman: ['Stand back! Toxic gas!', 'Suck it up, boys!', 'Hose ON!', 'Worst call this week!'],
   window: ['?', '??', 'Who ate the beans?!', 'Close the window!', 'Is it the sewer?', 'Mamma mia...', 'Somebody call the mayor!', 'Not again!'],
+  // special events (once per game)
+  teacherLead: ['Stay together, children!', 'Hold hands!', 'This fountain is 400 years old.', 'No running!', 'Marco, stop picking your nose.', 'Eyes on the flag, please!'],
+  kidChat: ['Are we there yet?', 'I need to pee!', 'Look, a pigeon!', 'He pushed me!', 'Can we get gelato?', 'I am hungry.', 'My feet hurt!'],
+  kidLaugh: ['HAHAHA!', 'Do it again, mister!', 'BEST TRIP EVER!', 'I am telling my dad!', 'Legend!', 'Can you teach me?', 'Mister, how?!'],
+  kidEww: ['EWWWW!', 'RUN!', 'Teacher, he farted!', 'MAMMA!', 'My nose!', 'Gross!!', 'It is in my hair!', 'I can SEE it!'],
+  kidGiggle: ['*giggle*', 'Hihihi', 'He tooted!', 'Did you hear that?'],
+  teacher: ["Sir! There are CHILDREN here!", "Children, don't look!", 'Back in line! BACK IN LINE!', 'Unbelievable!', 'I am calling the police!', 'This is NOT on the program!'],
+  stagCheer: ['LEGEND!', 'ONE MORE! ONE MORE!', 'Best stag do EVER!', 'Get him a beer!', 'Marry HIM instead!', 'That is the best man right there!'],
+  stagWalk: ['Last night of freedom!', 'Where is the next bar?', 'Who has the rings?', 'I love you guys!'],
+  bride: ['MY VEIL!!', 'MY WEDDING DAY!', '#@$%! On my DRESS?!', 'Get him OUT of my photos!', 'MAMMAAA!'],
+  groom: ['Not today, man. NOT TODAY.', 'Honey, I swear I do not know him.', 'Can we do the photos again?'],
+  photog: ['Perfect shot!', 'This one goes on the cover!', 'Hold that face!', '*click click click*', 'Pulitzer prize!'],
+  puke: ['*BLEEUURGH*', 'I am going to be sick...', 'Both ends?! Too much...', 'Hold my hair...'],
 };
 
 export const pick = (a) => a[(Math.random() * a.length) | 0];
