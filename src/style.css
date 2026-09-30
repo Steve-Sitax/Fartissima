@@ -225,3 +225,27 @@ body.touch #help { display: none; }
     border-radius: 14px; padding: 14px 20px; font-weight: 800; font-size: 20px; box-shadow: 4px 4px 0 #2b1d0e; }
   #hero-cards { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------- combo timer, fart train, stars ---------- */
+#combo-timer { position: fixed; left: 50%; top: calc(18% + 70px); transform: translateX(-50%); width: 260px; height: 16px; background: rgba(43, 29, 14, 0.35);
+  border: 2px solid #2b1d0e; border-radius: 9px; overflow: hidden; pointer-events: none; }
+#combo-timer i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #e0542a, #f1c22b, #9bd35a); transition: width 0.08s linear; }
+#combo-timer span { position: absolute; inset: 0; text-align: center; font-family: "Bangers", cursive; font-size: 13px; letter-spacing: 2px; line-height: 13px; color: #fff; text-shadow: 1px 1px 0 #2b1d0e; }
+#train { position: fixed; bottom: 22%; left: 100%; white-space: nowrap; pointer-events: none; font-size: 64px; animation: train-ride 4s linear forwards; z-index: 4; }
+#train .car { display: inline-block; margin-left: -8px; animation: chug 0.25s ease-in-out infinite alternate; }
+#train .car:nth-child(odd) { animation-delay: 0.12s; }
+#train b { font-family: "Bangers", cursive; font-weight: normal; font-size: 46px; color: #ffe066; -webkit-text-stroke: 2px #2b1d0e; text-shadow: 3px 3px 0 #2b1d0e; margin-left: 20px; vertical-align: middle; }
+@keyframes train-ride { from { transform: translateX(0); } to { transform: translateX(calc(-100vw - 100%)); } }
+@keyframes chug { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+.bubble.stars { background: none; border: none; box-shadow: none; font-size: 30px; }
+.bubble.stars::after { display: none; }
+@media (max-width: 950px), (max-height: 560px) {
+  #combo-timer { top: calc(22% + 40px); width: 180px; height: 12px; }
+  #combo-timer span { font-size: 10px; line-height: 9px; }
+  #train { font-size: 40px; }
+  #train b { font-size: 28px; }
+}
+
+#rp-hint { color: #fff8e1; font-size: 15px; margin-top: 4px; text-shadow: 1px 1px 0 #000; }
+#replay-ui { pointer-events: none; }
+#replay-ui button { pointer-events: auto; }

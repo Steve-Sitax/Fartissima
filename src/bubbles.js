@@ -24,7 +24,8 @@ export class BubbleLayer {
   draw(list, chars, camera, w, h) {
     let n = 0;
     for (const [owner, text, cls, age, x, y, z, life] of list) {
-      if (owner === -2) v.set(x, y + age * 1.2, z);
+      if (owner === -2) v.set(x, y + age * 1.2, z);      // rising point score
+      else if (owner === -3) v.set(x, y, z);         // fixed spot: stars, event actors
       else {
         const ch = chars[owner + 1];
         if (!ch) continue;

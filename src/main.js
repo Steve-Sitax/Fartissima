@@ -3,12 +3,13 @@ import * as THREE from 'three';
 import './style.css';
 import { buildWorld, HALF } from './world.js';
 import { Sfx } from './audio.js';
-import { Game, BLAST_COS } from './game.js';
+import { Game, BLAST_COS, CHAIN_WINDOW } from './game.js';
 import { CloudRenderer, cloudSnap } from './clouds.js';
 import { FoodRenderer } from './food.js';
 import { BubbleLayer } from './bubbles.js';
 import { Replay } from './replay.js';
 import { WindFX, AimGuide } from './fx.js';
+import { Happenings } from './events.js';
 import { FOODS, FART_NAMES, BURP_NAMES, HEROES, heroById } from './data.js';
 import { Character, POSE, newState } from './characters.js';
 import { fartParams, shartParams } from './synth.js';
@@ -31,6 +32,7 @@ const bubbles = new BubbleLayer($('bubbles'));
 const wind = new WindFX(scene);
 const aim = new AimGuide(scene, BLAST_COS);
 const sfx = new Sfx();
+const happen = new Happenings(scene, sfx);
 
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -75,7 +77,9 @@ const fmt = (n) => n.toLocaleString('en-US');
 // ---------- events: sounds and effects (live and in replays) ----------
 const camRight = new THREE.Vector3();
 function handleEvent(ev, speed = 1) {
-  if (ev.fx) { wind.spawn(ev); return; }
+  if (ev.fx === 'wind') { wind.spawn(ev); return; }
+  if (ev.fx === 'toxic') { happen.spawn(ev, camera); return; }
+  if (ev.fx === 'train') { fartTrain(ev.n); return; }
   if (ev.say) return; // skip calls stored in older replays
   if (ev.synth) { sfx[ev.synth]?.(); return; }
   let pan = 0, dist = 1;
@@ -207,6 +211,7 @@ async function startGame(heroId = game.hero.id) {
   lineup.visible = false;
   game.group.visible = true;
   wind.clear();
+  happen.clear();
   game.reset(heroId);
   sfx.settings.hero = heroId;
   sfx.saveSettings();
@@ -356,7 +361,7 @@ $('btn-rp-combo').onclick = () => startReplay(game.best?.clip);
 $('btn-rp-shart').onclick = () => startReplay(game.shartClip, 'SHART CAM');
 $('btn-hof-combo').onclick = () => startReplay(hof.combo?.clip);
 $('btn-rp-close').onclick = stopReplay;
-$('btn-rp-again').onclick = () => { wind.clear(); replay.restart(); };
+$('btn-rp-again').onclick = () => { wind.clear(); happen.clear(); replay.restart(); };
 $('btn-rp-slow').onclick = () => {
   replay.speed = replay.speed === 1 ? 0.5 : 1;
   $('btn-rp-slow').textContent = `🐌 Slow-mo: ${replay.speed === 1 ? 'off' : 'on'}`;
@@ -372,13 +377,54 @@ function openHof() {
   show('hof');
 }
 
+// ---------- free replay camera ----------
+const rcam = { yaw: null, pitch: 0.36, dist: 8.5, manual: false };
+const rcamTarget = new THREE.Vector3(), camTmp = new THREE.Vector3();
+const drags = new Map();
+canvas.addEventListener('pointerdown', (e) => {
+  if (!replaying) return;
+  drags.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+  const d = drags.get(e.pointerId);
+  if (!replaying || !d) return;
+  if (drags.size === 2) {
+    // two fingers: pinch to zoom
+    const [a, b] = [...drags.values()];
+    const before = Math.hypot(a.x - b.x, a.y - b.y);
+    d.x = e.clientX; d.y = e.clientY;
+    const after = Math.hypot(a.x - b.x, a.y - b.y);
+    rcam.dist = Math.max(3, Math.min(22, rcam.dist * (before / Math.max(1, after))));
+  } else {
+    rcam.yaw -= (e.clientX - d.x) * 0.008;
+    rcam.pitch = Math.max(-0.05, Math.min(1.35, rcam.pitch + (e.clientY - d.y) * 0.006));
+    d.x = e.clientX; d.y = e.clientY;
+  }
+  rcam.manual = true;
+});
+const endDrag = (e) => drags.delete(e.pointerId);
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+canvas.addEventListener('wheel', (e) => {
+  if (!replaying) return;
+  e.preventDefault();
+  rcam.dist = Math.max(3, Math.min(22, rcam.dist * (1 + e.deltaY * 0.001)));
+  rcam.manual = true;
+}, { passive: false });
+canvas.addEventListener('dblclick', () => { if (replaying) { rcam.manual = false; rcam.yaw = null; } });
+
 function startReplay(clip, title) {
   if (!clip || clip.frames.length < 2) return;
   replaying = true;
   document.body.classList.add('replaying');
   game.group.visible = false;
   wind.clear();
+  happen.clear();
   replay.start(clip);
+  Object.assign(rcam, { yaw: null, pitch: 0.36, dist: 8.5, manual: false });
+  const p0 = clip.frames[0].p;
+  rcamTarget.set(p0[0], 1.2, p0[1]);
   $('rp-title').textContent = title || `${clip.name} · ${fmt(clip.score)} pts`;
   $('replay-ui').classList.remove('hidden');
 }
@@ -387,9 +433,22 @@ function stopReplay() {
   replaying = false;
   replay.stop();
   wind.clear();
+  happen.clear();
   game.group.visible = true;
   document.body.classList.remove('replaying');
   $('replay-ui').classList.add('hidden');
+}
+
+// ---------- fart train: five farts in a row inside one combo ----------
+function fartTrain(n) {
+  const el = $('train');
+  el.innerHTML = `<span class="loco">🚂</span>${'<span class="car">💨</span>'.repeat(Math.min(n, 10))}<b>${n >= 10 ? 'DOUBLE FART TRAIN!' : 'CHOO CHOO! FART TRAIN!'}</b>`;
+  el.classList.remove('hidden');
+  el.style.animation = 'none';
+  void el.offsetWidth;   // restart the ride
+  el.style.animation = '';
+  clearTimeout(fartTrain.t);
+  fartTrain.t = setTimeout(() => el.classList.add('hidden'), 4200);
 }
 
 // ---------- HUD ----------
@@ -413,7 +472,11 @@ function updateHud() {
   }
   const live = g.liveCombo();
   $('live-score').classList.toggle('hidden', !live);
-  if (live) $('live-score').textContent = `${live.name}  ${fmt(live.score)}` + (live.people > 1 ? `  · ${live.people} hit` : '');
+  if (live) $('live-score').textContent = `${live.toxic ? '☢️ ' : ''}${live.name}  ${fmt(live.score)}` + (live.people > 1 ? `  · ${live.people} hit` : '');
+  // combo timer: how long you still have to add the next fart or burp to this combo
+  const open = live && live.window > 0;
+  $('combo-timer').classList.toggle('hidden', !open);
+  if (open) $('combo-timer').firstElementChild.style.width = `${(live.window / CHAIN_WINDOW) * 100}%`;
 }
 
 // ---------- camera ----------
@@ -456,12 +519,25 @@ function loop(now) {
     chars = replay.chars;
     bubbleList = fr.bubbles;
     const p = fr.states[0], clip = replay.clip;
-    // circle the hero; lean in around the big moment
+    // the camera always follows the hero. By itself it circles slowly and leans in at the big moment;
+    // once you drag, you look around freely (drag = turn, scroll or pinch = zoom, double-click = auto again)
     const near = Math.exp(-(((replay.t - clip.t0 - 0.8) / 1.6) ** 2));
     aim.update(null);
-    orbitCamera(p.x, p.z, 8.5 - near * 3, 3.2 - near * 1.2, p.rot + Math.PI * 0.75 + replay.camSpin * replay.t * 0.25, 1.3);
+    if (!rcam.manual) {
+      if (rcam.yaw === null) rcam.yaw = p.rot + Math.PI * 0.75;
+      rcam.yaw += dt * replay.speed * 0.25 * replay.camSpin;
+      rcam.dist = 8.5 - near * 3;
+      rcam.pitch = 0.36 - near * 0.12;
+    }
+    rcamTarget.lerp(camTmp.set(p.x, 1.2, p.z), Math.min(1, dt * 8));
+    camera.position.set(
+      rcamTarget.x + Math.sin(rcam.yaw) * Math.cos(rcam.pitch) * rcam.dist,
+      Math.max(0.4, rcamTarget.y + Math.sin(rcam.pitch) * rcam.dist),
+      rcamTarget.z + Math.cos(rcam.yaw) * Math.cos(rcam.pitch) * rcam.dist);
+    camera.lookAt(rcamTarget);
     $('rp-progress').firstElementChild.style.width = `${(replay.t / replay.duration) * 100}%`;
     wind.update(dt * replay.speed, camera.position);
+    happen.update(dt * replay.speed);
   } else {
     if (state === 'play') game.update(dt, readInput(dt));
     else if (state !== 'pause') game.update(dt, null, true);
@@ -480,10 +556,10 @@ function loop(now) {
     else orbitCamera(0, 0, 26, 11, t * 0.05, 2);
     if (state === 'play') updateHud();
     aim.update(state === 'play' ? game.chargeInfo() : null, gs, t);
-    if (state !== 'pause') wind.update(dt, camera.position);
+    if (state !== 'pause') { wind.update(dt, camera.position); happen.update(dt); }
   }
   renderer.render(scene, camera);
-  bubbles.draw(state === 'choose' && !replaying ? [] : bubbleList, chars, camera, window.innerWidth, window.innerHeight);
+  bubbles.draw(state === 'choose' && !replaying ? [] : bubbleList.concat(happen.bubbles()), chars, camera, window.innerWidth, window.innerHeight);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

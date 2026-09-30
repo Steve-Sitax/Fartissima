@@ -11,8 +11,9 @@ export function makeCloud({ x, y, z, tier, stench, color = 0, dirX = 0, dirZ = 0
     vx: dirX * 0.6 + (Math.random() - 0.5) * 0.3,
     vz: dirZ * 0.6 + (Math.random() - 0.5) * 0.3,
     age: 0,
-    life: 5 + power * 2.6,
-    rMax: 1.4 + power * 0.9,
+    // capped: a very stinky hero on broccoli must not gas the whole square in one go
+    life: Math.min(20, 5 + power * 1.6),
+    rMax: Math.min(8, 1.4 + power * 0.6),
     r: 0.5,
     strength: 1,
     color,
@@ -70,11 +71,11 @@ export class CloudRenderer {
     return this.pool[i];
   }
 
-  // list: [x, y, z, r, strength, colorIdx, seed][]
+  // list: [x, y, z, r, strength, colorIdx, seed, thin][]; thin = toxic cloud, drawn see-through
   // cam: camera position; puffs right in front of the lens fade out so you can still see.
   draw(list, t, cam) {
     let n = 0;
-    for (const [x, y, z, r, str, col, seed] of list) {
+    for (const [x, y, z, r, str, col, seed, thin] of list) {
       let a = seed;
       const rnd = () => ((a = (a * 16807) % 2147483647) / 2147483647);
       for (let i = 0; i < PUFFS; i++) {
@@ -86,7 +87,7 @@ export class CloudRenderer {
         s.scale.set(size, size, 1);
         s.material.color.copy(this.colors[col]);
         const near = cam ? Math.min(1, Math.max(0.15, (s.position.distanceTo(cam) - 1.5) / 4)) : 1;
-        s.material.opacity = Math.min(0.55, str * 0.6) * near;
+        s.material.opacity = Math.min(0.55, str * 0.6) * near * (thin ? 0.4 : 1);
         s.visible = true;
       }
     }
@@ -94,4 +95,4 @@ export class CloudRenderer {
   }
 }
 
-export const cloudSnap = (c) => [c.x, c.y, c.z, c.r, c.strength, c.color, c.seed];
+export const cloudSnap = (c) => [c.x, c.y, c.z, c.r, c.strength, c.color, c.seed, c.thin ? 1 : 0];

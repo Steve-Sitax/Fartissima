@@ -4,17 +4,20 @@ import { Character, POSE, newState } from './characters.js';
 import { makeCloud, updateCloud, smellRadius, cloudSnap } from './clouds.js';
 import { spawnFood, MAX_FOOD } from './food.js';
 import { FOODS, FART_NAMES, BURP_NAMES, LINES, pick, heroById } from './data.js';
-import { clampToWalkable, randomSpot } from './world.js';
+import { clampToWalkable, randomSpot, HALF } from './world.js';
 import { fartParams, shartParams } from './synth.js';
 
-export const KINDS = ['hero', 'man', 'fan', 'woman'];
+export const KINDS = ['hero', 'man', 'fan', 'woman', 'lady'];
 export const ROUND_TIME = 180;
 export const SNAP_DT = 1 / 20;
 const PRE_FRAMES = 40;           // 2 s of footage before the blast
 const MAX_FRAMES = PRE_FRAMES + 16 / SNAP_DT;   // a combo replay lasts at most 16 s
-const CHAIN_WINDOW = 2.5;   // seconds between blasts that still count as one combo
+export const CHAIN_WINDOW = 2.5;   // seconds between blasts that still count as one combo
 const BURP_FACTOR = 0.8;    // burps always score a bit less than farts
-export const chainMult = (n) => 1 + 0.5 * (Math.min(n, 7) - 1);
+const TOXIC = 10000;        // a combo this big sets off a toxic event
+const LADY_CHASE = 5;      // seconds the fancy lady chases you
+const DAZE = 2.5;          // seconds you see stars after her selfie stick
+export const chainMult = (n) => 1 + 0.35 * (Math.min(n, 7) - 1);
 const TIER_AT = [10, 24, 42, 65]; // gas used -> size tier 1..5
 const BASE = [10, 25, 50, 90, 150];
 const NPC_COUNT = 32;
@@ -65,16 +68,17 @@ export class Game {
     });
     this.npcs = [];
     for (let i = 0; i < (this.npcCount || NPC_COUNT); i++) {
-      const kind = i % 20 < 9 ? 'woman' : i % 2 ? 'fan' : 'man';
+      // one fancy lady with a selfie stick walks among them
+      const kind = i === 5 ? 'lady' : i % 20 < 9 ? 'woman' : i % 2 ? 'fan' : 'man';
       const seed = 100 + i * 37 + ((Math.random() * 1000) | 0);
       const ch = new Character(kind, seed);
       this.group.add(ch.root);
       const p = randomSpot();
       const n = { ch, kind, seed, s: newState(p.x, p.z), target: randomSpot(), speed: 1.1 + Math.random() * 0.8,
-        mode: 'walk', modeT: 0, pending: null, hairT: 0, fleeFrom: null, reactPose: 0, group: null, slot: -1 };
+        mode: 'walk', modeT: 0, pending: null, hairT: 0, fleeFrom: null, reactPose: 0, group: null, slot: -1, chaseCd: 0 };
       this.npcs.push(n);
       // most people start out standing in a group, chatting
-      if (Math.random() < 0.65 && this.joinGroup(n, i)) {
+      if (kind !== 'lady' && Math.random() < 0.65 && this.joinGroup(n, i)) {
         const sp = this.slotPos(n.group, n.slot);
         n.s.x = sp.x; n.s.z = sp.z;
         n.mode = 'chat'; n.modeT = 5 + Math.random() * 30;
@@ -107,6 +111,7 @@ export class Game {
     this.warned = false;
     this.emptyCd = 0;
     this.fleeVoiceCd = 0;
+    this.dazeT = 0;
   }
 
   // ---------- main tick ----------
@@ -129,6 +134,15 @@ export class Game {
     }
     this.updateGroups(dt);
     this.updateNpcs(dt);
+    for (const c of this.clouds) {
+      if (!c.suck || this.time < c.suck.at) continue;
+      // the fire truck's vacuum: the cloud is pulled to the hose and gone in two seconds
+      if (!c.suck.started) { c.suck.started = true; c.life = Math.min(c.life, c.age + 3.2); }
+      c.x += (c.suck.x - c.x) * Math.min(1, dt * 1.6);
+      c.z += (c.suck.z - c.z) * Math.min(1, dt * 1.6);
+      c.y += (3.4 - c.y) * Math.min(1, dt * 2);
+      c.rMax *= 1 - Math.min(0.9, dt * 0.6);
+    }
     this.clouds = this.clouds.filter((c) => updateCloud(c, dt));
     for (const b of this.bubbles) b.age += dt;
     this.bubbles = this.bubbles.filter((b) => b.age < b.life);
@@ -140,6 +154,7 @@ export class Game {
     }
     this.emissions = this.emissions.filter((e) => !e.done);
     for (const c of this.chains) {
+      if (!c.done && !c.toxic && this.chainScore(c) >= TOXIC) this.toxicEvent(c);
       if (!c.done && c.ems.every((e) => e.done) && this.time - c.lastAt > CHAIN_WINDOW) this.finalizeChain(c);
     }
     this.chains = this.chains.filter((c) => !c.done);
@@ -164,6 +179,17 @@ export class Game {
   // ---------- Gino ----------
   updatePlayer(dt, inp) {
     const g = this.gino, s = g.s;
+    this.camYaw = inp.yaw;   // where the camera looks: toxic scenes are staged in view
+    if (this.dazeT > 0) {
+      // whacked by the selfie stick: seeing stars, no walking, no blasting
+      this.dazeT -= dt;
+      s.pose = POSE.DAZED;
+      s.move = Math.max(0, s.move - dt * 5);
+      this.charge = null;
+      this.prev.fart = inp.fart; this.prev.burp = inp.burp;
+      if (this.dazeT <= 0) s.pose = POSE.NORMAL;
+      return;
+    }
     const fx = Math.sin(inp.yaw), fz = Math.cos(inp.yaw);
     // keys give -1/0/1, the phone thumb stick gives anything in between
     const mx = (inp.right ? 1 : 0) - (inp.left ? 1 : 0) + (inp.ax || 0), mz = (inp.fwd ? 1 : 0) - (inp.back ? 1 : 0) + (inp.ay || 0);
@@ -223,7 +249,11 @@ export class Game {
     this.gas.fart += food.fart;
     this.gas.burp += food.burp;
     for (const k of ['fart', 'burp']) {
-      if (this.gas[k] > this.hero.tank) { this.shart += (this.gas[k] - this.hero.tank) * 0.3 / this.hero.control; this.gas[k] = this.hero.tank; }
+      if (this.gas[k] > this.hero.tank) {
+        // overeating food strains the belly; drinks never touch the shart meter
+        if (!food.drink) this.shart += (this.gas[k] - this.hero.tank) * 0.3 / this.hero.control;
+        this.gas[k] = this.hero.tank;
+      }
     }
     this.shart = Math.min(100, Math.max(0, this.shart + (food.shart > 0 ? food.shart / this.hero.control : food.shart)));
     if (food.style) { this.style = food.style; this.stench = food.stench; this.fartFood = food.id; }
@@ -352,15 +382,16 @@ export class Game {
     return em;
   }
 
-  score(em) { return Math.round((em.base + em.points) * (1 + Math.min(3, em.people * 0.15)) * (em.kind === 'burp' ? BURP_FACTOR : 1)); }
+  score(em) { return Math.round((em.base + em.points) * (1 + Math.min(1.5, em.people * 0.08)) * (em.kind === 'burp' ? BURP_FACTOR : 1)); }
 
   addPoints(em, pts, npcIdx) {
     if (em.done || em.kind === 'shart') return;
-    pts = Math.round(pts);
+    const n = this.npcs[npcIdx];
+    const lady = n.kind === 'lady';
+    pts = Math.round(pts * (lady ? 2 : 1));   // the fancy lady is worth double
     em.points += pts;
     em.people++;
-    const n = this.npcs[npcIdx];
-    this.bubbles.push({ owner: -2, text: `+${pts}`, cls: 'pts', age: 0, life: 1.9, x: n.s.x, y: n.ch.height + 0.9, z: n.s.z });
+    this.bubbles.push({ owner: -2, text: `+${pts}${lady ? ' x2' : ''}`, cls: 'pts', age: 0, life: 1.9, x: n.s.x, y: n.ch.height + 0.9, z: n.s.z });
   }
 
   finalize(em) {
@@ -385,6 +416,12 @@ export class Game {
     ch.ems.push(em);
     ch.lastAt = this.time;
     em.chain = ch;
+    // five farts in a row inside one combo: the fart train leaves the station
+    ch.fartRun = em.kind === 'fart' ? (ch.fartRun || 0) + 1 : 0;
+    if (ch.fartRun === 5 || ch.fartRun === 10) {
+      this.emit({ fx: 'train', n: ch.fartRun });
+      this.emit({ f: 'fx_whistle', rate: 1, gain: 0.7 });
+    }
     const n = ch.ems.length;
     if (n >= 2) {
       // said right away, over the hero's head: you see the combo grow while you do it
@@ -406,7 +443,7 @@ export class Game {
   chainScore(c) {
     const n = c.ems.length;
     const mixed = c.ems.some((e) => e.kind === 'fart') && c.ems.some((e) => e.kind === 'burp');
-    return Math.round(c.ems.reduce((a, e) => a + this.score(e), 0) * chainMult(n) * (mixed ? 1.2 : 1));
+    return Math.round(c.ems.reduce((a, e) => a + this.score(e), 0) * chainMult(n) * (mixed ? 1.15 : 1));
   }
 
   finalizeChain(c) {
@@ -430,7 +467,60 @@ export class Game {
     const c = this.chains.filter((x) => !x.done).at(-1);
     if (!c) return null;
     return { name: c.ems.length > 1 ? `${this.chainTitle(c)} x${c.ems.length}` : c.ems[0].name, score: this.chainScore(c), n: c.ems.length,
+      window: Math.max(0, CHAIN_WINDOW - (this.time - c.lastAt)), toxic: !!c.toxic,
       people: c.ems.reduce((a, e) => a + e.people, 0) };
+  }
+
+  // ---------- toxic combo events ----------
+  // A combo past TOXIC points: one of these shows up (two past twice that). Each is over in 10 s.
+  // only: force one scene (for tests)
+  toxicEvent(c, only) {
+    c.toxic = true;
+    const alive = c.ems.map((e) => e.cloud).filter((cl) => cl && this.clouds.includes(cl));
+    // The scene plays at the cloud when you can see it. A fart while walking leaves the cloud
+    // behind the camera, so then the scene plays in front of you instead.
+    const h = this.gino.s, yaw = this.camYaw ?? h.rot;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    const cl = alive.at(-1);
+    const seen = cl && ((cl.x - h.x) * fx + (cl.z - h.z) * fz) > 2 && Math.hypot(cl.x - h.x, cl.z - h.z) < 28;
+    const target = seen ? cl : clampToWalkable({ x: h.x + fx * 8, z: h.z + fz * 8 }, 2);
+    const kinds = only ? [only] : ['birds', 'firetruck', 'hazmat', 'windows'].sort(() => Math.random() - 0.5);
+    const count = this.chainScore(c) >= TOXIC * 2 ? 2 : 1;
+    this.ui.toast('☢️ TOXIC COMBO! ☢️', 'gold');
+    // toxic clouds hang around longer, but thinner, so you can watch what happens inside them
+    for (const cl of alive) { cl.life += 8; cl.thin = true; }
+    for (const kind of kinds.slice(0, count)) {
+      const ev = { fx: 'toxic', kind, x: target.x, z: target.z, seed: (Math.random() * 1e9) | 0 };
+      if (kind === 'firetruck') {
+        // the truck comes in from the side away from the hero, stops next to the cloud, then leaves
+        const side = this.gino.s.x > target.x ? -1 : 1;
+        ev.lane = Math.max(-HALF + 3, Math.min(HALF - 3, target.z + 2.6));
+        ev.x0 = side * (HALF - 1);
+        ev.stopX = Math.max(-HALF + 4, Math.min(HALF - 4, target.x + side * 3));
+        ev.x1 = -side * (HALF + 8);
+        for (const cl of alive) cl.suck = { at: this.time + 3.9, x: ev.stopX, z: ev.lane };
+      }
+      this.emit(ev);
+    }
+  }
+
+  // The fancy lady caught you: dazed, gas gone, and the combo is over.
+  ladyHit(n, i) {
+    const g = this.gino.s;
+    this.emit({ f: 'fx_slap', rate: 1, gain: 1, x: g.x, z: g.z });
+    this.dazeT = DAZE;
+    this.gas.fart = 0;
+    this.gas.burp = 0;
+    this.charge = null;
+    this.shake = 0.8;
+    if (this.chain) this.chain.lastAt = -99;
+    this.say(-1, pick(this.lines.dazed), 'hero');
+    this.bubbles.push({ owner: -3, text: '💫 ⭐ 💫', cls: 'stars', age: 0, life: DAZE, x: g.x, y: this.gino.ch.height + 0.2, z: g.z });
+    this.say(i, pick(this.lines.ladyHit), 'curse');
+    this.ui.toast('💫 Whacked by the selfie stick! Gas gone!', 'bad');
+    n.mode = 'walk';
+    n.target = randomSpot();
+    n.chaseCd = 15;
   }
 
   // Tell everyone nearby that something just happened. dirSign -1 = blast goes out the back.
@@ -441,11 +531,12 @@ export class Game {
       const dx = n.s.x - s.x, dz = n.s.z - s.z, d = Math.hypot(dx, dz) || 0.01;
       const inBlast = d < blastR && (d < 1.6 || (dx * fx + dz * fz) / d > BLAST_COS);
       let type = null, delay = 0.05;
-      if (inBlast) type = n.kind === 'woman' ? 'hair' : n.kind === 'fan' ? 'fanClose' : 'blast';
+      const female = n.kind === 'woman' || n.kind === 'lady';
+      if (inBlast) type = female ? 'hair' : n.kind === 'fan' ? 'fanClose' : 'blast';
       else if (d < hearR) {
         delay = 0.15 + d / 40 + Math.random() * 0.35;
         if (n.kind === 'fan') type = 'fan';
-        else if (n.kind === 'woman') type = Math.random() < 0.8 ? 'womanMeh' : null;
+        else if (female) type = Math.random() < 0.8 ? 'womanMeh' : null;
         else type = Math.random() < 0.75 ? 'meh' : null;
       }
       if (type && (!n.pending || inBlast)) n.pending = { type, at: this.time + delay, em };
@@ -477,6 +568,16 @@ export class Game {
         pose = POSE.CURSE; dur = 2.8; text = pick(this.lines.curse); cls = 'curse'; pts = 60 + 20 * t; voice = 'gasp';
         s.hair = 1; n.hairT = 9; s.red = 1;
         break;
+    }
+    if (n.kind === 'lady' && type === 'hair' && em.tier >= 3 && em.kind !== 'shart' && n.chaseCd <= 0) {
+      // a hard one right next to her: the selfie stick goes up and she comes for you
+      this.leaveGroup(n);
+      n.mode = 'chase'; n.modeT = LADY_CHASE;
+      s.pose = POSE.CHASE;
+      this.say(i, pick(this.lines.ladyAngry), 'curse');
+      if (em.voices < 3) this.voice('gasp', n, em);
+      this.addPoints(em, pts, i);
+      return;
     }
     if (n.mode !== 'flee' || type === 'hair') {
       n.mode = 'react'; n.modeT = dur; n.reactPose = pose;
@@ -541,6 +642,7 @@ export class Game {
       s.green = Math.max(0, s.green - dt * 0.2);
       s.red = Math.max(0, s.red - dt * 0.25);
       if (n.hairT > 0) n.hairT -= dt; else s.hair = Math.max(0, s.hair - dt * 0.3);
+      if (n.chaseCd > 0) n.chaseCd -= dt;
       if (n.pending && this.time >= n.pending.at) {
         const p = n.pending; n.pending = null;
         this.react(n, i, p.type, p.em);
@@ -552,7 +654,7 @@ export class Game {
         const d = Math.hypot(s.x - c.x, s.z - c.z), R = smellRadius(c);
         if (d < R && c.strength * (1 - d / R) + 0.01 > worstK) { worst = c; worstK = c.strength * (1 - d / R) + 0.01; }
       }
-      if (worst) {
+      if (worst && n.mode !== 'chase') {   // rage beats stench: a chasing lady ignores the cloud
         if (n.mode !== 'flee') {
           n.mode = 'flee';
           this.leaveGroup(n);
@@ -593,8 +695,21 @@ export class Game {
         }
         case 'idle': {
           n.modeT -= dt;
-          s.pose = POSE.NORMAL;
+          s.pose = n.kind === 'lady' ? POSE.SELFIE : POSE.NORMAL;
           if (n.modeT <= 0) this.nextPlan(n, i);
+          break;
+        }
+        case 'chase': {
+          // the fancy lady, selfie stick up, straight at the hero
+          n.modeT -= dt;
+          s.pose = POSE.CHASE;
+          const dx = gs.x - s.x, dz = gs.z - s.z, d = Math.hypot(dx, dz) || 0.01;
+          vx = dx / d; vz = dz / d; speed = 5.3;
+          if (d < 1.55 && this.dazeT <= 0 && !this.sharting && !this.over) this.ladyHit(n, i);
+          else if (n.modeT <= 0) {
+            this.say(i, pick(this.lines.ladyGiveUp), 'curse');
+            n.mode = 'walk'; n.target = randomSpot(); n.chaseCd = 10;
+          }
           break;
         }
         case 'toChat': {
@@ -649,6 +764,14 @@ export class Game {
   // What does a pedestrian do next? Join a chat, stand around, or stroll on.
   nextPlan(n, i) {
     const r = Math.random();
+    if (n.kind === 'lady') {
+      // she never chats: she strolls and stops for selfies
+      if (r < 0.55) {
+        n.mode = 'idle'; n.modeT = 2.5 + Math.random() * 3;
+        if (Math.random() < 0.5) this.say(i, pick(this.lines.selfie), 'chat');
+      } else { n.mode = 'walk'; n.target = randomSpot(); }
+      return;
+    }
     if (r < 0.5 && this.joinGroup(n, i)) n.mode = 'toChat';
     else if (r < 0.7) { n.mode = 'idle'; n.modeT = 1 + Math.random() * 4; }
     else { n.mode = 'walk'; n.target = randomSpot(); }
