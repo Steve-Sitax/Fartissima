@@ -13,7 +13,7 @@ import { Happenings } from './events.js';
 import { FOODS, FART_NAMES, BURP_NAMES, HEROES, heroById } from './data.js';
 import { Character, POSE, newState } from './characters.js';
 import { fartParams, shartParams } from './synth.js';
-import { isTouch, setupTouch, goFullscreen } from './touch.js';
+import { isTouch, isIOS, isApp, setupTouch, goFullscreen } from './touch.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
@@ -226,8 +226,16 @@ async function startGame(heroId = game.hero.id) {
 }
 
 // ---------- phones: full screen and sideways from the first tap, menus included ----------
-if (TOUCH) {
+if (TOUCH && isApp()) {
+  // started from the home-screen icon: already full screen, straight to the title screen
+  document.body.classList.add('app');
+} else if (TOUCH) {
   show('tapstart');
+  if (isIOS()) {
+    // iPhone/iPad in the browser: full screen is not possible here, so explain the app way
+    $('ios-tip').classList.remove('hidden');
+    $('tap-note').classList.add('hidden');
+  }
   $('btn-tapstart').onclick = () => { goFullscreen(); state = 'title'; show('title'); };
   // any later tap brings full screen back if the phone dropped out of it (back gesture, app switch)
   document.addEventListener('pointerdown', () => { if (!document.fullscreenElement) goFullscreen(); }, { capture: true });

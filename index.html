@@ -22,7 +22,17 @@
   <div id="tapstart" class="screen hidden">
     <h1 class="logo"><span>F</span><span>A</span><span>R</span><span>T</span><span>I</span><span>S</span><span>S</span><span>I</span><span>M</span><span>A</span></h1>
     <button id="btn-tapstart" class="big">👆 Tap to start</button>
-    <p class="fine">Full screen, phone sideways. Tip: "Add to Home screen" starts it like an app.</p>
+    <p class="fine" id="tap-note">Full screen, phone sideways. Tip: "Add to Home screen" starts it like an app.</p>
+    <!-- only on an iPhone/iPad in the browser: Apple allows full screen only for home-screen apps -->
+    <div id="ios-tip" class="card hidden">
+      <p><b>📲 Play full screen: make it an app</b></p>
+      <ol>
+        <li>Tap <b>Share</b> <svg class="share-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10H5v10h14V10h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> in the browser bar.</li>
+        <li>Choose <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+        <li>Close this tab and start <b>Fartissima</b> from your home screen.</li>
+      </ol>
+      <p class="fine">Turn off the portrait lock and hold your phone sideways. You can also just tap "Tap to start" and play here.</p>
+    </div>
   </div>
 
   <!-- In-game HUD -->
