@@ -1,9 +1,14 @@
 # Fartissima
 
+## 💨 [▶ PLAY NOW: steve-sitax.github.io/Fartissima](https://steve-sitax.github.io/Fartissima/)
+
+Runs in the browser on computer and phone. No install.
+On a phone: turn it sideways, or use **Add to Home screen** to start it like an app.
+
 A third-person browser game about the noble art of public wind.
 Pick a wind warrior (Little Luca, Marco, Gino or Nonno Beppe), eat street food, fart, burp, and try not to shart.
 
-## Play
+## Run it yourself
 
 ```
 npm install
