@@ -5,7 +5,7 @@ import { renderFart, FART_VOICE } from './synth.js';
 import { Music } from './music.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
-const SETTINGS_KEY = 'fartissima.settings.v2';
+const SETTINGS_KEY = 'fartissima.settings.v3';   // v3: quieter music by default
 
 export class Sfx {
   constructor() {
@@ -16,7 +16,7 @@ export class Sfx {
     this.active = new Set();
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { /* first run */ }
-    this.settings = { mode: 'real', music: 0.7, amb: 0.8, ...saved };
+    this.settings = { mode: 'real', music: 0.3, amb: 0.8, ...saved };
   }
 
   saveSettings() {
@@ -41,7 +41,7 @@ export class Sfx {
     verbGain.gain.value = 0.22;
     this.verb.connect(verbGain).connect(this.comp);
     this.voiceBus = ctx.createGain();
-    this.voiceBus.gain.value = 0.75;
+    this.voiceBus.gain.value = 0.35;   // the crowd reacts, but the farts stay the stars
     this.voiceBus.connect(this.master);
     this.ambBus = ctx.createGain();
     this.ambDuck = ctx.createGain();

@@ -139,7 +139,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keys.add(e.code);
   if (e.code === 'Escape' && state === 'play' && !document.pointerLockElement) pause();
-  if (e.code === 'KeyM') { sfx.settings.music = sfx.settings.music > 0 ? 0 : 0.7; sfx.saveSettings(); refreshSettings(); }
+  if (e.code === 'KeyM') { sfx.settings.music = sfx.settings.music > 0 ? 0 : 0.3; sfx.saveSettings(); refreshSettings(); }
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
@@ -219,6 +219,7 @@ async function startGame(heroId = game.hero.id) {
 }
 
 // ---------- settings ----------
+const MUSIC_STEPS = [0, 0.15, 0.3, 0.6, 1];
 function refreshSettings() {
   const s = sfx.settings;
   for (const el of document.querySelectorAll('.set-mode')) el.textContent = `💨 Farts: ${s.mode === 'real' ? 'Recorded' : 'Artificial'}`;
@@ -230,7 +231,7 @@ document.addEventListener('click', (e) => {
   if (!t) return;
   const s = sfx.settings;
   if (t.classList.contains('set-mode')) s.mode = s.mode === 'real' ? 'synth' : 'real';
-  else if (t.classList.contains('set-music')) s.music = [0, 0.4, 0.7, 1][([0, 0.4, 0.7, 1].indexOf(s.music) + 1) % 4];
+  else if (t.classList.contains('set-music')) s.music = MUSIC_STEPS[(MUSIC_STEPS.indexOf(s.music) + 1) % MUSIC_STEPS.length];
   else if (t.classList.contains('set-amb')) s.amb = s.amb ? 0 : 0.8;
   else return;
   sfx.saveSettings();
