@@ -217,6 +217,26 @@ export class Sfx {
     }
   }
 
+  // Toxic alarm: two rising "whoop"s, so nobody misses a toxic combo.
+  alarm() {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t0 = ctx.currentTime;
+    for (let k = 0; k < 2; k++) {
+      const t = t0 + k * 0.55;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(420, t);
+      o.frequency.exponentialRampToValueAtTime(1100, t + 0.45);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.12, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 2500;
+      o.connect(lp).connect(g).connect(this.master);
+      o.start(t); o.stop(t + 0.52);
+    }
+  }
+
   // A small bird hitting the cobbles.
   thud() {
     if (!this.ctx) return;

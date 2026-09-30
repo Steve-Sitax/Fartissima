@@ -447,6 +447,8 @@ export class Game {
   }
 
   finalizeChain(c) {
+    // a combo that only passed the toxic line in its very last moment still gets its scene
+    if (!c.toxic && !this.over && this.chainScore(c) >= TOXIC) this.toxicEvent(c);
     c.done = true;
     const sc = this.chainScore(c), n = c.ems.length;
     const name = n > 1 ? `${this.chainTitle(c)} x${n}` : c.ems[0].name;
@@ -482,11 +484,13 @@ export class Game {
     const h = this.gino.s, yaw = this.camYaw ?? h.rot;
     const fx = Math.sin(yaw), fz = Math.cos(yaw);
     const cl = alive.at(-1);
-    const seen = cl && ((cl.x - h.x) * fx + (cl.z - h.z) * fz) > 2 && Math.hypot(cl.x - h.x, cl.z - h.z) < 28;
+    // only when the cloud is in view AND close by; far away the scene would be too small to notice
+    const seen = cl && ((cl.x - h.x) * fx + (cl.z - h.z) * fz) > 2 && Math.hypot(cl.x - h.x, cl.z - h.z) < 14;
     const target = seen ? cl : clampToWalkable({ x: h.x + fx * 8, z: h.z + fz * 8 }, 2);
     const kinds = only ? [only] : ['birds', 'firetruck', 'hazmat', 'windows'].sort(() => Math.random() - 0.5);
     const count = this.chainScore(c) >= TOXIC * 2 ? 2 : 1;
     this.ui.toast('☢️ TOXIC COMBO! ☢️', 'gold');
+    this.emit({ synth: 'alarm' });
     // toxic clouds hang around longer, but thinner, so you can watch what happens inside them
     for (const cl of alive) { cl.life += 8; cl.thin = true; }
     for (const kind of kinds.slice(0, count)) {

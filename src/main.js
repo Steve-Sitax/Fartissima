@@ -133,7 +133,7 @@ const game = new Game(scene, sfx, ui);
 if (TOUCH) game.npcCount = 22;   // phones get a slightly smaller crowd
 game.reset(sfx.settings.hero || 'fat');
 const replay = new Replay(scene, sfx, handleEvent);
-if (import.meta.env.DEV) window.__fartissima = { game, replay, sfx, get state() { return state; } };
+if (import.meta.env.DEV) window.__fartissima = { game, replay, sfx, happen, get state() { return state; } };
 
 // ---------- input ----------
 const keys = new Set();
