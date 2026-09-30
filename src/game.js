@@ -137,11 +137,11 @@ export class Game {
     for (const c of this.clouds) {
       if (!c.suck || this.time < c.suck.at) continue;
       // the fire truck's vacuum: the cloud is pulled to the hose and gone in two seconds
-      if (!c.suck.started) { c.suck.started = true; c.life = Math.min(c.life, c.age + 2.2); }
-      c.x += (c.suck.x - c.x) * Math.min(1, dt * 2.5);
-      c.z += (c.suck.z - c.z) * Math.min(1, dt * 2.5);
+      if (!c.suck.started) { c.suck.started = true; c.life = Math.min(c.life, c.age + 3.2); }
+      c.x += (c.suck.x - c.x) * Math.min(1, dt * 1.6);
+      c.z += (c.suck.z - c.z) * Math.min(1, dt * 1.6);
       c.y += (3.4 - c.y) * Math.min(1, dt * 2);
-      c.rMax *= 1 - Math.min(0.9, dt * 0.9);
+      c.rMax *= 1 - Math.min(0.9, dt * 0.6);
     }
     this.clouds = this.clouds.filter((c) => updateCloud(c, dt));
     for (const b of this.bubbles) b.age += dt;
@@ -498,7 +498,7 @@ export class Game {
         ev.x0 = side * (HALF - 1);
         ev.stopX = Math.max(-HALF + 4, Math.min(HALF - 4, target.x + side * 3));
         ev.x1 = -side * (HALF + 8);
-        for (const cl of alive) cl.suck = { at: this.time + 3.2, x: ev.stopX, z: ev.lane };
+        for (const cl of alive) cl.suck = { at: this.time + 3.9, x: ev.stopX, z: ev.lane };
       }
       this.emit(ev);
     }

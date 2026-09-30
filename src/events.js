@@ -61,7 +61,7 @@ function makeBird(parent) {
 
 class Birds {
   constructor(root, ev, sfx) {
-    this.dur = 9;
+    this.dur = 10;
     this.sfx = sfx;
     const r = rng(ev.seed);
     this.birds = Array.from({ length: 10 }, (_, k) => {
@@ -81,16 +81,16 @@ class Birds {
   }
   update(t) {
     for (const b of this.birds) {
-      const tf = 1.2 + b.j;               // start of the fall
-      const tl = tf + 0.9;                // on the ground
-      const ts = 5.2 + b.j;               // shake it off
-      const tu = ts + 0.8;                // up and away
+      const tf = 2 + b.j;                 // start of the fall
+      const tl = tf + 1.3;                // on the ground
+      const ts = 6.3 + b.j;               // shake it off
+      const tu = ts + 1.1;                // up and away
       let x, y, z, flap = 0, back = 0, spin = 0;
       if (t < tf) {
-        const a = b.ang + t * 1.6;
+        const a = b.ang + t * 1.0;
         x = b.cx + Math.cos(a) * b.rad; z = b.cz + Math.sin(a) * b.rad; y = b.h;
         b.g.rotation.set(0, -a, 0.3);
-        flap = Math.sin(t * 25);
+        flap = Math.sin(t * 18);
         b.lx = x; b.lz = z;
       } else if (t < tl) {
         const k = (t - tf) / (tl - tf);
@@ -105,10 +105,10 @@ class Birds {
       } else if (t < tu) {
         x = b.lx; z = b.lz; y = 0.25 + Math.abs(Math.sin((t - ts) * 20)) * 0.12;
         const k = (t - ts) / (tu - ts);
-        b.g.rotation.set(Math.sin(t * 40) * 0.4, b.away, Math.PI * (1 - ease(k)));   // shake, flip upright
+        b.g.rotation.set(Math.sin(t * 30) * 0.4, b.away, Math.PI * (1 - ease(k)));   // shake, flip upright
       } else {
         const k = t - tu;
-        x = b.lx + Math.cos(b.away) * k * 5; z = b.lz + Math.sin(b.away) * k * 5; y = 0.3 + k * k * 2 + k * 2;
+        x = b.lx + Math.cos(b.away) * k * 4; z = b.lz + Math.sin(b.away) * k * 4; y = 0.3 + k * k * 1.5 + k * 1.5;
         b.g.rotation.set(-0.4, -b.away + Math.PI / 2, 0);
         flap = Math.sin(t * 30);
         if (!this.flapped) { this.flapped = true; this.sfx.play({ f: 'fx_pigeons', gain: 0.55 }); }
@@ -161,10 +161,10 @@ class FireTruck {
   update(t, dt) {
     const e = this.ev, g = this.g;
     let x;
-    if (t < 2.8) x = lerp(e.x0, e.stopX, ease(t / 2.8));
-    else if (t < 6.3) x = e.stopX;
+    if (t < 3.5) x = lerp(e.x0, e.stopX, ease(t / 3.5));
+    else if (t < 7.5) x = e.stopX;
     else {
-      const k = (t - 6.3) / 3.2;
+      const k = (t - 7.5) / 2.5;
       x = lerp(e.stopX, e.x1, k * k);
       if (Math.abs(x) > HALF + 1) g.scale.setScalar(Math.max(0.01, 1 - (Math.abs(x) - HALF - 1) / 5));
     }
@@ -173,15 +173,15 @@ class FireTruck {
     this.lights[0].material = toon(blink ? '#3399ff' : '#ffffff');
     this.lights[1].material = toon(blink ? '#ffffff' : '#3399ff');
     // hose swings towards the cloud while parked
-    const aim = t > 2.8 && t < 6.3 ? ease((t - 2.8) / 0.6) : t >= 6.3 ? 1 - ease((t - 6.3) / 0.5) : 0;
+    const aim = t > 3.5 && t < 7.5 ? ease((t - 3.5) / 0.7) : t >= 7.5 ? 1 - ease((t - 7.5) / 0.6) : 0;
     this.hose.rotation.x = -aim * 1.1;
     this.hose.rotation.y = aim * 0.4 * this.dir;
-    if (t > 3 && !this.vac) { this.vac = true; this.sfx.play({ f: 'fx_vacuum', gain: 0.55 }); }
+    if (t > 3.8 && !this.vac) { this.vac = true; this.sfx.play({ f: 'fx_vacuum', gain: 0.55 }); }
     if (t > 5.75 && !this.siren2) { this.siren2 = true; this.sfx.play({ f: 'fx_siren', gain: 0.45 }); }
-    if (t > 2.6 && !this.s1) { this.s1 = true; this.bubbles.push({ text: LINES.fireman[0], cls: 'curse', t0: t, life: 2.2, obj: g, dy: 3.4 }); }
-    if (t > 4.6 && !this.s2) { this.s2 = true; this.bubbles.push({ text: LINES.fireman[1 + ((e.seed >>> 3) % 3)], cls: 'chat', t0: t, life: 2, obj: g, dy: 3.4 }); }
+    if (t > 3.3 && !this.s1) { this.s1 = true; this.bubbles.push({ text: LINES.fireman[0], cls: 'curse', t0: t, life: 2.2, obj: g, dy: 3.4 }); }
+    if (t > 5.6 && !this.s2) { this.s2 = true; this.bubbles.push({ text: LINES.fireman[1 + ((e.seed >>> 3) % 3)], cls: 'chat', t0: t, life: 2, obj: g, dy: 3.4 }); }
     // green puffs streaming into the nozzle
-    if (t > 3.1 && t < 5.8 && Math.random() < dt * 25) {
+    if (t > 3.9 && t < 7.1 && Math.random() < dt * 25) {
       const m = new THREE.Mesh(this.puffGeo, new THREE.MeshBasicMaterial({ color: '#9ad64f', transparent: true, opacity: 0.8 }));
       m.position.set(e.x + (Math.random() - 0.5) * 3, 1 + Math.random() * 1.5, e.z + (Math.random() - 0.5) * 3);
       this.root.add(m);
@@ -204,12 +204,12 @@ class FireTruck {
 // Three people in white suits run in, measure, take notes, and run for their lives.
 class Hazmat {
   constructor(root, ev, sfx) {
-    this.dur = 9.5;
+    this.dur = 10;
     this.sfx = sfx;
     const r = rng(ev.seed);
     const from = r() * Math.PI * 2;
-    const sx = Math.max(-HALF + 2, Math.min(HALF - 2, ev.x + Math.cos(from) * 18));
-    const sz = Math.max(-HALF + 2, Math.min(HALF - 2, ev.z + Math.sin(from) * 18));
+    const sx = Math.max(-HALF + 2, Math.min(HALF - 2, ev.x + Math.cos(from) * 14));
+    const sz = Math.max(-HALF + 2, Math.min(HALF - 2, ev.z + Math.sin(from) * 14));
     this.team = ['geiger', 'geiger', 'writer'].map((tool, k) => {
       const c = new Character('hazmat', 50 + k, tool);
       root.add(c.root);
@@ -223,26 +223,26 @@ class Hazmat {
     for (const m of this.team) {
       const s = m.st;
       let tx, tz, run = 0;
-      if (t < 2.6) { tx = m.post.x; tz = m.post.z; run = 5; }
-      else if (t < 6.6) { tx = s.x; tz = s.z; }
-      else { tx = m.home.x; tz = m.home.z; run = 7.5; }
+      if (t < 3.3) { tx = m.post.x; tz = m.post.z; run = 4.4; }
+      else if (t < 7.4) { tx = s.x; tz = s.z; }
+      else { tx = m.home.x; tz = m.home.z; run = 6.5; }
       const dx = tx - s.x, dz = tz - s.z, d = Math.hypot(dx, dz);
       if (run && d > 0.2) {
         const step = Math.min(d, run * dt);
         s.x += (dx / d) * step; s.z += (dz / d) * step;
         s.rot = Math.atan2(dx, dz);
         s.move = 1; s.walk += dt * run * 3;
-        s.pose = t >= 6.6 ? POSE.FLEE : POSE.NORMAL;
+        s.pose = t >= 7.4 ? POSE.FLEE : POSE.NORMAL;
       } else {
         s.move = 0;
-        if (t >= 2.6 && t < 6.6) {
+        if (t >= 3.3 && t < 7.4) {
           s.rot = Math.atan2(this.ev.x - s.x, this.ev.z - s.z);
           s.pose = m.tool === 'writer' ? POSE.WRITE : POSE.MEASURE;
         }
       }
       m.c.apply(s, t);
     }
-    if (t > 2.6 && !this.geiger) { this.geiger = true; this.sfx.geiger(4); }
+    if (t > 3.3 && !this.geiger) { this.geiger = true; this.sfx.geiger(4.1); }
     const say = (at, k, list, cls) => {
       const key = 's' + at;
       if (t > at && !this[key]) {
@@ -250,10 +250,10 @@ class Hazmat {
         this.bubbles.push({ text: list[(this.ev.seed >>> (k * 3)) % list.length], cls, t0: t, life: 2.2, obj: this.team[k].c.root, dy: 2.2 });
       }
     };
-    say(3.0, 0, LINES.hazmat, 'chat');
-    say(4.2, 1, LINES.hazmat, 'curse');
-    say(5.2, 2, LINES.notes, 'chat');
-    say(6.4, 0, ['RUN!', 'EVACUATE!', 'Abort! ABORT!'], 'curse');
+    say(3.6, 0, LINES.hazmat, 'chat');
+    say(4.8, 1, LINES.hazmat, 'curse');
+    say(6.0, 2, LINES.notes, 'chat');
+    say(7.2, 0, ['RUN!', 'EVACUATE!', 'Abort! ABORT!'], 'curse');
   }
 }
 
@@ -261,7 +261,7 @@ class Hazmat {
 // Neighbours lean out of their windows, look around, and wonder what on earth that was.
 class Windows {
   constructor(root, ev, sfx, camera) {
-    this.dur = 9;
+    this.dur = 10;
     const r = rng(ev.seed);
     // the wall the camera is looking at, so the player sees them
     const f = new THREE.Vector3();
@@ -302,14 +302,14 @@ class Windows {
       const inward = -sign;
       const pos = alongX ? { x: along, z: sign * (wall - 0.1) } : { x: sign * (wall - 0.1), z: along };
       const face = alongX ? (inward > 0 ? 0 : Math.PI) : (inward > 0 ? Math.PI / 2 : -Math.PI / 2);
-      return { g, face, pos, y, delay: r() * 1.2, out: 0.6 + r() * 0.4, leave: 7.2 + r() * 1.3, look: r() * 6, inward, alongX,
+      return { g, face, pos, y, delay: r() * 1.5, out: 0.6 + r() * 0.4, leave: 8.2 + r() * 1.2, look: r() * 6, inward, alongX,
         line: k % 3 === 0 ? LINES.window[2 + ((ev.seed >>> k) % (LINES.window.length - 2))] : k % 2 ? '?' : '??' };
     });
     this.bubbles = [];
   }
   update(t) {
     for (const h of this.heads) {
-      const k = t < h.leave ? ease((t - h.delay) / 0.35) : 1 - ease((t - h.leave) / 0.3);
+      const k = t < h.leave ? ease((t - h.delay) / 0.6) : 1 - ease((t - h.leave) / 0.4);
       const d = k * h.out * h.inward;
       h.g.position.set(h.pos.x + (h.alongX ? 0 : d), h.y, h.pos.z + (h.alongX ? d : 0));
       h.g.visible = k > 0.01;
