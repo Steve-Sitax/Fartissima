@@ -54,7 +54,7 @@ function saveHof() {
 // ---------- screens ----------
 let state = 'title';       // title | play | pause | results | hof | lab
 let replaying = false;
-const screens = ['title', 'pause', 'results', 'hof', 'lab', 'choose'];
+const screens = ['title', 'pause', 'results', 'hof', 'lab', 'choose', 'tapstart'];
 function show(name) {
   for (const s of screens) $(s).classList.toggle('hidden', s !== name);
   $('hud').classList.toggle('hidden', !(name === null || name === 'pause'));
@@ -216,6 +216,14 @@ async function startGame(heroId = game.hero.id) {
   state = 'play';
   show(null);
   if (TOUCH) goFullscreen(); else canvas.requestPointerLock?.();
+}
+
+// ---------- phones: full screen and sideways from the first tap, menus included ----------
+if (TOUCH) {
+  show('tapstart');
+  $('btn-tapstart').onclick = () => { goFullscreen(); state = 'title'; show('title'); };
+  // any later tap brings full screen back if the phone dropped out of it (back gesture, app switch)
+  document.addEventListener('pointerdown', () => { if (!document.fullscreenElement) goFullscreen(); }, { capture: true });
 }
 
 // ---------- settings ----------

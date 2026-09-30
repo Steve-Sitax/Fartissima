@@ -24,7 +24,8 @@ Combo names: Chain Farter, Belching Boomer (Burping Brat for Luca), Two-Way Torn
 ## Play on a phone
 
 The game is published on GitHub Pages: https://steve-sitax.github.io/Fartissima/
-Turn the phone sideways. Left thumb: walk (push to the edge to run). Right thumb: hold FART or BURP,
+The first tap puts the game full screen and sideways (Android). On iPhone, or to start it like an app,
+use "Add to Home screen": it then always opens full screen and sideways. Left thumb: walk (push to the edge to run). Right thumb: hold FART or BURP,
 slide while holding to aim. Drag on the right half of the screen to look around.
 
 ## Controls
