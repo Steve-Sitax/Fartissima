@@ -1,6 +1,10 @@
 // Phone and tablet controls: a thumb stick on the left, big FART and BURP buttons on the right.
 // Hold a button to build up; drag your thumb while holding to aim. Drag anywhere else to look around.
 export const isTouch = () => matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+// iPhone / iPad (an iPad says it is a Mac, but a Mac has no touch screen)
+export const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// started from the home-screen icon instead of a browser tab
+export const isApp = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches;
 
 export function setupTouch({ input, look, isPlaying, pause }) {
   document.body.classList.add('touch');

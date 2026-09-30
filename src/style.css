@@ -255,3 +255,15 @@ body.touch #help { display: none; }
 @keyframes flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 
 #live-score { white-space: nowrap; }
+
+/* ---------- iPhone: "make it an app" tip, notch and home-bar safe areas ---------- */
+#ios-tip { margin-top: 12px; max-width: 520px; font-size: 16px; }
+#ios-tip ol { margin: 6px 0 4px 20px; padding: 0; }
+#ios-tip li { margin: 3px 0; }
+.share-ico { width: 1.2em; height: 1.2em; vertical-align: -0.25em; color: #0a84ff; }
+body.touch #meters { left: calc(8px + env(safe-area-inset-left)); top: calc(8px + env(safe-area-inset-top)); }
+body.touch #scores { right: calc(8px + env(safe-area-inset-right)); top: calc(8px + env(safe-area-inset-top)); }
+body.touch #t-fart { right: calc(24px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); }
+body.touch #t-burp { right: calc(142px + env(safe-area-inset-right)); bottom: calc(60px + env(safe-area-inset-bottom)); }
+body.touch #stick-zone { padding-left: env(safe-area-inset-left); }
+body.touch .screen { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
