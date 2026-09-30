@@ -619,9 +619,12 @@ export class Game {
         if (!em.kidGiggled) { em.kidGiggled = true; this.emit({ f: 'kid_giggle', rate: 1, gain: 0.6, x: s.x, z: s.z }); } break;
       case 'teacher': pose = POSE.SHOCK; dur = 1.6; text = pick(this.lines.teacher); cls = 'curse'; pts = 30 + 10 * t; voice = 'gasp'; n.after = 'scatter'; break;
       case 'stag': {
-        pose = POSE.THUMBS; dur = 2.2; cls = 'fan'; pts = (20 + 12 * t) * 1.5;
-        const name = this.hero.name.split(' ').pop().toUpperCase();
-        text = Math.random() < 0.5 ? `${name}! ${name}! ${name}!` : pick(this.lines.stagCheer);
+        pose = POSE.THUMBS; dur = 2 + Math.random() * 0.8; cls = 'fan'; pts = (20 + 12 * t) * 1.5; n.after = 'scatter';
+        if (!em.stagLines) {
+          const name = this.hero.name.split(' ').pop().toUpperCase();
+          em.stagLines = shuffle([`${name}! ${name}! ${name}!`, ...this.lines.stagCheer]);
+        }
+        text = em.stagLines.pop() || pick(this.lines.stagCheer);
         if (!em.stagRoar) { em.stagRoar = true; this.emit({ s: 'voice', f: this.sfx.voice('crowd_ooh').f, rate: 0.9, gain: 0.8, x: s.x, z: s.z }); }
         break;
       }
@@ -786,13 +789,24 @@ export class Game {
           // special visitors walking a route, going to a spot, leaving, or running off the square
           const tgt = n.mode === 'guide' ? n.path[n.wp] : n.target;
           const dx = tgt.x - s.x, dz = tgt.z - s.z, d = Math.hypot(dx, dz);
-          s.pose = n.mode === 'scatter' ? POSE.FLEE : POSE.NORMAL;
+          s.pose = n.mode !== 'scatter' ? POSE.NORMAL : n.kind === 'stag' ? POSE.THUMBS : POSE.FLEE;
           const sp = n.mode === 'scatter' ? (n.kind === 'kid' ? 4.2 : 3.8) : n.mode === 'leave' ? n.speed * 1.4 : n.speed;
           // a spot in a crowd is never reached exactly: close enough counts
           if (d > (n.mode === 'goto' ? 0.9 : 0.35)) { vx = dx / d; vz = dz / d; speed = Math.min(sp, d * 3 + 0.3); }
           else if (n.mode === 'guide' && n.wp < n.path.length - 1) n.wp++;
           else if (n.mode === 'goto') { n.mode = 'pose'; }
           else { n.mode = 'parked'; }          // off the square: gone until the next game
+          break;
+        }
+        case 'herd': {
+          // the stag party: a wobbly bunch around the groom-to-be, each with his own spot and sway
+          const f = n.front;
+          if (!f || f.mode === 'parked' || f.mode === 'scatter' || f.mode === 'leave') { n.after = 'scatter'; this.visitorResume(n, false); break; }
+          const h = n.herd, sway = Math.sin(this.time * 1.3 + h.wob) * 0.8;
+          const tx = f.s.x + h.x + sway, tz = f.s.z + h.z + Math.cos(this.time * 1.1 + h.wob) * 0.6;
+          const dx = tx - s.x, dz = tz - s.z, d = Math.hypot(dx, dz);
+          s.pose = POSE.NORMAL;
+          if (d > 0.3) { vx = dx / d; vz = dz / d; speed = Math.min(2.4, d * 1.8); }
           break;
         }
         case 'trip': {
@@ -940,7 +954,11 @@ export class Game {
         m.mode = 'goto';
         m.target = m.role === 'lead' ? P : m.role === 'groom' ? { x: P.x + side2.x, z: P.z + side2.z } : { x: Math.sin(a) * 11.5, z: Math.cos(a) * 11.5 };
       } else if (k === 0) { m.mode = 'guide'; m.path = path; m.wp = 1; }
-      else { m.mode = 'trip'; m.front = tr.members[k - 1]; }
+      else if (key === 'stag') {
+        m.mode = 'herd'; m.front = tr.members[0];
+        const a = (k / (tr.members.length - 1)) * Math.PI * 2 + Math.random() * 0.8, r = 1.2 + Math.random() * 1.6;
+        m.herd = { x: Math.sin(a) * r, z: Math.cos(a) * r, wob: Math.random() * 6 };
+      } else { m.mode = 'trip'; m.front = tr.members[k - 1]; }
     });
     const msg = { school: '🏫 A school trip is crossing the piazza!', stag: '🍻 A stag party is in town!', wedding: '💒 Wedding photos at the fountain!' }[key];
     this.ui.toast(msg, 'gold');
@@ -949,6 +967,7 @@ export class Game {
   // which reaction a special visitor has to a blast
   visitorReaction(n, em, inBlast, hears) {
     if (!inBlast && !hears) return null;
+    if (n.mode === 'scatter' || n.mode === 'leave') return null;   // already on the way out: no second helping of points
     const hard = inBlast || em.tier >= 3;
     switch (n.kind) {
       case 'kid': return em.kind === 'burp' && !n.ch.girl && hard ? 'kidLaugh' : hard ? 'kidEww' : 'kidGiggle';
@@ -963,7 +982,7 @@ export class Game {
 
   // what a special visitor does after a reaction (fled = after running from a cloud)
   visitorResume(n, fled) {
-    const next = n.after || (fled ? (n.troupe === 'stag' ? n.prevMode : n.troupe === 'school' ? 'scatter' : 'leave') : n.prevMode);
+    const next = n.after || (fled ? (n.troupe === 'wedding' ? 'leave' : 'scatter') : n.prevMode);
     n.after = null;
     n.mode = next || 'leave';
     if (n.mode === 'scatter') {
