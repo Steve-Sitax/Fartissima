@@ -12,11 +12,13 @@ import { WindFX, AimGuide } from './fx.js';
 import { FOODS, FART_NAMES, BURP_NAMES, HEROES, heroById } from './data.js';
 import { Character, POSE, newState } from './characters.js';
 import { fartParams, shartParams } from './synth.js';
+import { isTouch, setupTouch, goFullscreen } from './touch.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('game');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+const TOUCH = isTouch();
+renderer.setPixelRatio(Math.min(TOUCH ? 1.5 : 2, window.devicePixelRatio));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -40,10 +42,10 @@ window.addEventListener('resize', resize);
 resize();
 
 // ---------- Hall of Fame (this computer only) ----------
-const HOF_KEY = 'fartissima.hof.v1';
+const HOF_KEY = 'fartissima.hof.v2';   // v2: one best combo instead of best fart + best burp
 const loadHof = () => { try { return JSON.parse(localStorage.getItem(HOF_KEY)) || {}; } catch { return {}; } };
 let hof = loadHof();
-const cleanClip = (c) => c && { kind: c.kind, name: c.name, score: c.score, dt: c.dt, t0: c.t0, roster: c.roster, frames: c.frames, sounds: c.sounds };
+const cleanClip = (c) => c && { kind: c.kind, name: c.name, score: c.score, dt: c.dt, t0: c.t0, roster: c.roster, hero: c.hero, frames: c.frames, sounds: c.sounds };
 function saveHof() {
   try { localStorage.setItem(HOF_KEY, JSON.stringify(hof)); }
   catch { toast('Hall of Fame is full. Could not save the replay.', 'bad'); }
@@ -56,6 +58,7 @@ const screens = ['title', 'pause', 'results', 'hof', 'lab', 'choose'];
 function show(name) {
   for (const s of screens) $(s).classList.toggle('hidden', s !== name);
   $('hud').classList.toggle('hidden', !(name === null || name === 'pause'));
+  touch?.show(name === null);
 }
 
 function toast(text, cls = '') {
@@ -98,29 +101,24 @@ const ui = {
   ended(reason) {
     exitPointer();
     const g = game;
-    const total = (g.best.fart?.score || 0) + (g.best.burp?.score || 0);
     const sharted = reason === 'shart';
     const h = g.hero;
     $('res-title').textContent = sharted ? '💩 YOU SHARTED! 💩' : h.over;
     $('res-title').classList.toggle('shart', sharted);
     $('res-sub').textContent = sharted ? `${h.sharted} Game over.` : h.home;
-    for (const k of ['fart', 'burp']) {
-      $(`res-${k}`).textContent = fmt(g.best[k]?.score || 0);
-      $(`res-${k}-lbl`).textContent = g.best[k]?.name || 'nothing';
-      $(`btn-rp-${k}`).disabled = !g.best[k];
-    }
+    $('res-combo').textContent = fmt(g.best?.score || 0);
+    $('res-combo-lbl').textContent = g.best?.name || 'nothing';
+    $('btn-rp-combo').disabled = !g.best;
     $('res-shart-card').classList.toggle('hidden', !sharted);
-    $('res-total').textContent = fmt(total);
-    const record = total > (hof.total || 0);
+    const record = g.best && g.best.score > (hof.combo?.score || 0);
     $('res-record').textContent = record ? '🏆 NEW RECORD!' : '';
     // let the clips record their last second, then store the all-time best ones
     setTimeout(() => {
-      for (const k of ['fart', 'burp']) {
-        const b = g.best[k];
-        if (b && b.score > (hof[k]?.score || 0)) hof[k] = { score: b.score, name: b.name, date: new Date().toISOString(), clip: cleanClip(b.clip) };
+      const b = g.best;
+      if (record) {
+        hof.combo = { score: b.score, name: b.name, hero: g.hero.name, date: new Date().toISOString(), clip: cleanClip(b.clip) };
+        saveHof();
       }
-      if (record) hof.total = total;
-      saveHof();
     }, 1500);
     state = 'results';
     show('results');
@@ -128,6 +126,7 @@ const ui = {
 };
 
 const game = new Game(scene, sfx, ui);
+if (TOUCH) game.npcCount = 22;   // phones get a slightly smaller crowd
 game.reset(sfx.settings.hero || 'fat');
 const replay = new Replay(scene, sfx, handleEvent);
 if (import.meta.env.DEV) window.__fartissima = { game, replay, sfx, get state() { return state; } };
@@ -147,7 +146,7 @@ window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => { keys.clear(); mouseFart = mouseBurp = false; if (state === 'play') pause(); });
 canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 canvas.addEventListener('mousedown', (e) => {
-  if (state !== 'play') return;
+  if (state !== 'play' || TOUCH) return;
   if (!document.pointerLockElement) { canvas.requestPointerLock?.(); return; }
   if (e.button === 0) mouseFart = true;
   if (e.button === 2) mouseBurp = true;
@@ -171,13 +170,20 @@ function readInput(dt) {
   input.back = k('KeyS', 'ArrowDown');
   input.left = k('KeyA', 'ArrowLeft');
   input.right = k('KeyD', 'ArrowRight');
-  input.run = k('ShiftLeft', 'ShiftRight');
-  input.fart = mouseFart || k('KeyF', 'Space');
-  input.burp = mouseBurp || k('KeyB');
+  input.run = k('ShiftLeft', 'ShiftRight') || !!input.touchRun;
+  input.fart = mouseFart || k('KeyF', 'Space') || !!input.touchFart;
+  input.burp = mouseBurp || k('KeyB') || !!input.touchBurp;
   if (k('KeyQ')) input.yaw += dt * 2.2;   // turn the camera with the keys left/right of W
   if (k('KeyE')) input.yaw -= dt * 2.2;
   return input;
 }
+
+const touch = TOUCH ? setupTouch({
+  input,
+  look: (dx, dy) => { input.yaw -= dx * 0.006; pitch = Math.max(0.02, Math.min(1.1, pitch + dy * 0.004)); },
+  isPlaying: () => state === 'play',
+  pause: () => pause(),
+}) : null;
 
 function pause() {
   $('pause-sub').textContent = game.hero.pause;
@@ -209,7 +215,7 @@ async function startGame(heroId = game.hero.id) {
   $('last-food').textContent = 'Tummy: empty. Find food on the street!';
   state = 'play';
   show(null);
-  canvas.requestPointerLock?.();
+  if (TOUCH) goFullscreen(); else canvas.requestPointerLock?.();
 }
 
 // ---------- settings ----------
@@ -332,7 +338,7 @@ $('btn-again').onclick = () => startGame();
 $('btn-change').onclick = () => openChoose();
 $('btn-go').onclick = () => startGame(chosen);
 $('btn-choose-back').onclick = () => { lineup.visible = false; game.group.visible = true; state = 'title'; show('title'); };
-$('btn-resume').onclick = () => { state = 'play'; show(null); canvas.requestPointerLock?.(); };
+$('btn-resume').onclick = () => { state = 'play'; show(null); if (TOUCH) goFullscreen(); else canvas.requestPointerLock?.(); };
 $('btn-quit').onclick = () => game.endRound('time');
 $('btn-menu').onclick = () => { state = 'title'; show('title'); };
 $('btn-hof').onclick = async () => { await ensureAudio(); openHof(); };
@@ -345,11 +351,9 @@ $('btn-hof-clear').onclick = () => {
   hof = {};
   openHof();
 };
-$('btn-rp-fart').onclick = () => startReplay(game.best.fart?.clip);
-$('btn-rp-burp').onclick = () => startReplay(game.best.burp?.clip);
+$('btn-rp-combo').onclick = () => startReplay(game.best?.clip);
 $('btn-rp-shart').onclick = () => startReplay(game.shartClip, 'SHART CAM');
-$('btn-hof-fart').onclick = () => startReplay(hof.fart?.clip);
-$('btn-hof-burp').onclick = () => startReplay(hof.burp?.clip);
+$('btn-hof-combo').onclick = () => startReplay(hof.combo?.clip);
 $('btn-rp-close').onclick = stopReplay;
 $('btn-rp-again').onclick = () => { wind.clear(); replay.restart(); };
 $('btn-rp-slow').onclick = () => {
@@ -359,12 +363,10 @@ $('btn-rp-slow').onclick = () => {
 
 function openHof() {
   hof = loadHof();
-  for (const k of ['fart', 'burp']) {
-    $(`hof-${k}`).textContent = fmt(hof[k]?.score || 0);
-    $(`hof-${k}-lbl`).textContent = hof[k] ? `${hof[k].name}, ${new Date(hof[k].date).toLocaleDateString()}` : 'nothing yet';
-    $(`btn-hof-${k}`).disabled = !hof[k]?.clip;
-  }
-  $('hof-total').textContent = fmt(hof.total || 0);
+  const c = hof.combo;
+  $('hof-combo').textContent = fmt(c?.score || 0);
+  $('hof-combo-lbl').textContent = c ? `${c.name} by ${c.hero}, ${new Date(c.date).toLocaleDateString()}` : 'nothing yet';
+  $('btn-hof-combo').disabled = !c?.clip;
   state = 'hof';
   show('hof');
 }
@@ -399,11 +401,8 @@ function updateHud() {
   const tl = Math.ceil(g.timeLeft);
   $('timer').textContent = `${Math.floor(tl / 60)}:${String(tl % 60).padStart(2, '0')}`;
   $('timer').classList.toggle('low', tl <= 20);
-  for (const k of ['fart', 'burp']) {
-    $(`best-${k}`).textContent = fmt(g.best[k]?.score || 0);
-    $(`best-${k}-lbl`).textContent = g.best[k]?.name || '-';
-  }
-  $('total').textContent = fmt((g.best.fart?.score || 0) + (g.best.burp?.score || 0));
+  $('best-combo').textContent = fmt(g.best?.score || 0);
+  $('best-combo-lbl').textContent = g.best?.name || '-';
   const ci = g.chargeInfo();
   $('charge').classList.toggle('hidden', !ci);
   if (ci) {
@@ -411,9 +410,9 @@ function updateHud() {
     $('charge-bar').style.width = `${ci.amount}%`;
     $('charge-aim').textContent = ci.blastR > 0 ? `💥 ${ci.inBlast} in the blast · 👂 ${ci.inHear} will hear it` : `🤫 silent · ${ci.inHear} close enough to hear`;
   }
-  const live = g.emissions.filter((e) => !e.done && e.kind !== 'shart').at(-1);
+  const live = g.liveCombo();
   $('live-score').classList.toggle('hidden', !live);
-  if (live) $('live-score').textContent = `${live.name}  ${fmt(g.score(live))}` + (live.people > 1 ? `  ×${live.people}` : '');
+  if (live) $('live-score').textContent = `${live.name}  ${fmt(live.score)}` + (live.people > 1 ? `  · ${live.people} hit` : '');
 }
 
 // ---------- camera ----------
@@ -476,7 +475,7 @@ function loop(now) {
     bubbleList = game.bubbles.map((b) => [b.owner, b.text, b.cls, b.age, b.x, b.y, b.z, b.life]);
     if (state === 'play' || state === 'pause') followCamera(gs.x, gs.z, dt);
     else if (state === 'results' && game.sharting) orbitCamera(gs.x, gs.z, 6, 2.5, t * 0.3);
-    else if (state === 'choose') { updateLineup(t); camera.position.set(0, 1.2, LINE_Z + 9); camera.lookAt(0, -2.3, LINE_Z); }
+    else if (state === 'choose') { updateLineup(t); const back = 9 * Math.max(1, 1.6 / camera.aspect); camera.position.set(0, 1.2, LINE_Z + back); camera.lookAt(0, -2.3 * back / 9, LINE_Z); }
     else orbitCamera(0, 0, 26, 11, t * 0.05, 2);
     if (state === 'play') updateHud();
     aim.update(state === 'play' ? game.chargeInfo() : null, gs, t);

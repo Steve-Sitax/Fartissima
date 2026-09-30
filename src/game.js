@@ -11,7 +11,10 @@ export const KINDS = ['hero', 'man', 'fan', 'woman'];
 export const ROUND_TIME = 180;
 export const SNAP_DT = 1 / 20;
 const PRE_FRAMES = 40;           // 2 s of footage before the blast
-const MAX_FRAMES = PRE_FRAMES + 9 / SNAP_DT;
+const MAX_FRAMES = PRE_FRAMES + 16 / SNAP_DT;   // a combo replay lasts at most 16 s
+const CHAIN_WINDOW = 2.5;   // seconds between blasts that still count as one combo
+const BURP_FACTOR = 0.8;    // burps always score a bit less than farts
+export const chainMult = (n) => 1 + 0.5 * (Math.min(n, 7) - 1);
 const TIER_AT = [10, 24, 42, 65]; // gas used -> size tier 1..5
 const BASE = [10, 25, 50, 90, 150];
 const NPC_COUNT = 32;
@@ -61,7 +64,7 @@ export class Game {
       return { x, z, cap, slots: new Array(cap).fill(-1), speaker: -1, speakT: 0 };
     });
     this.npcs = [];
-    for (let i = 0; i < NPC_COUNT; i++) {
+    for (let i = 0; i < (this.npcCount || NPC_COUNT); i++) {
       const kind = i % 20 < 9 ? 'woman' : i % 2 ? 'fan' : 'man';
       const seed = 100 + i * 37 + ((Math.random() * 1000) | 0);
       const ch = new Character(kind, seed);
@@ -92,7 +95,9 @@ export class Game {
     this.stinkName = '';
     this.charge = null;
     this.prev = { fart: false, burp: false };
-    this.best = { fart: null, burp: null };
+    this.best = null;          // { score, name, clip }: the best combo, farts and burps together
+    this.chain = null;
+    this.chains = [];
     this.shartClip = null;
     this.ring = [];
     this.recording = [];
@@ -134,6 +139,10 @@ export class Game {
       if ((em.age > 3.5 && !cloudAlive) || em.age > 25) this.finalize(em);
     }
     this.emissions = this.emissions.filter((e) => !e.done);
+    for (const c of this.chains) {
+      if (!c.done && c.ems.every((e) => e.done) && this.time - c.lastAt > CHAIN_WINDOW) this.finalizeChain(c);
+    }
+    this.chains = this.chains.filter((c) => !c.done);
     if (!attract) {
       this.foodTimer -= dt;
       if (this.foodTimer <= 0 && this.foods.length < MAX_FOOD) {
@@ -156,16 +165,17 @@ export class Game {
   updatePlayer(dt, inp) {
     const g = this.gino, s = g.s;
     const fx = Math.sin(inp.yaw), fz = Math.cos(inp.yaw);
-    const mx = (inp.right ? 1 : 0) - (inp.left ? 1 : 0), mz = (inp.fwd ? 1 : 0) - (inp.back ? 1 : 0);
+    // keys give -1/0/1, the phone thumb stick gives anything in between
+    const mx = (inp.right ? 1 : 0) - (inp.left ? 1 : 0) + (inp.ax || 0), mz = (inp.fwd ? 1 : 0) - (inp.back ? 1 : 0) + (inp.ay || 0);
     let vx = fx * mz - fz * mx, vz = fz * mz + fx * mx;
     const len = Math.hypot(vx, vz);
-    const speed = this.charge ? this.hero.speed * 0.4 : inp.run ? this.hero.run : this.hero.speed;
+    const speed = (this.charge ? this.hero.speed * 0.4 : inp.run ? this.hero.run : this.hero.speed) * Math.min(1, len);
     if (this.charge) {
       // aiming: the mouse turns Gino so the blast goes where the camera looks
       // (fart: back towards the target, burp: face towards it)
       s.rot = lerpAngle(s.rot, inp.yaw + (this.charge.kind === 'fart' ? Math.PI : 0), dt * 14);
     }
-    if (len > 0) {
+    if (len > 0.05) {
       vx /= len; vz /= len;
       if (!this.charge) s.rot = lerpAngle(s.rot, Math.atan2(vx, vz), dt * 10);
       s.x += vx * speed * dt; s.z += vz * speed * dt;
@@ -278,6 +288,7 @@ export class Game {
     const name = FART_NAMES[style][tier - 1];
     const mult = { dry: 1, wet: 1.25, squeak: 1.1, sbd: 0.5 }[style];
     const em = this.newEmission('fart', name, tier, BASE[tier - 1] * mult, cloud);
+    this.addToChain(em);
     const seed = (Math.random() * 1e9) | 0;
     const ev = this.sfx.settings.mode === 'real'
       ? this.sfx.realFart(style, tier, this.fartFood)
@@ -302,6 +313,7 @@ export class Game {
       this.clouds.push(cloud);
     }
     const em = this.newEmission('burp', this.burpName(tier), tier, BASE[tier - 1] * (stink ? 1.2 : 1), cloud);
+    this.addToChain(em);
     this.emit(this.voiced(this.sfx.burp(tier)));
     this.emit({ fx: 'wind', kind: 'burp', x: s.x + fwd.x * g.ch.mouthZ, y: g.ch.mouthY, z: s.z + fwd.z * g.ch.mouthZ, dx: fwd.x, dz: fwd.z, tier });
     if (tier >= 4) this.ui.duck();
@@ -340,7 +352,7 @@ export class Game {
     return em;
   }
 
-  score(em) { return Math.round((em.base + em.points) * (1 + Math.min(3, em.people * 0.15))); }
+  score(em) { return Math.round((em.base + em.points) * (1 + Math.min(3, em.people * 0.15)) * (em.kind === 'burp' ? BURP_FACTOR : 1)); }
 
   addPoints(em, pts, npcIdx) {
     if (em.done || em.kind === 'shart') return;
@@ -353,19 +365,72 @@ export class Game {
 
   finalize(em) {
     em.done = true;
-    const clip = em.clip;
-    clip.stopAt = Math.min(MAX_FRAMES, clip.frames.length + 20);
-    if (em.kind === 'shart') return;
-    const sc = this.score(em);
-    clip.score = sc;
-    const best = this.best[em.kind];
-    const label = em.kind === 'fart' ? 'fart' : 'burp';
-    if (!best || sc > best.score) {
-      this.best[em.kind] = { score: sc, name: em.name, clip };
-      this.ui.toast(`NEW BEST ${label.toUpperCase()}! ${em.name} ${sc}`, 'gold');
+    if (em.kind === 'shart') em.clip.stopAt = Math.min(MAX_FRAMES, em.clip.frames.length + 20);
+  }
+
+  // ---------- combos ----------
+  // Blasts fired within CHAIN_WINDOW of each other form one combo: the scores add up and get
+  // multiplied (x1.5 for two, x2 for three ...). Farts and burps mix freely.
+  addToChain(em) {
+    const c = this.chain;
+    if (c && !c.done && this.time - c.lastAt <= CHAIN_WINDOW) {
+      // same combo: one replay for the whole combo
+      this.recording = this.recording.filter((x) => x !== em.clip);
+      em.clip = c.clip;
     } else {
-      this.ui.toast(`${em.name}: ${sc} (best ${best.score})`);
+      this.chain = { ems: [], clip: em.clip, lastAt: 0, done: false };
+      this.chains.push(this.chain);
     }
+    const ch = this.chain;
+    ch.ems.push(em);
+    ch.lastAt = this.time;
+    em.chain = ch;
+    const n = ch.ems.length;
+    if (n >= 2) {
+      // said right away, over the hero's head: you see the combo grow while you do it
+      this.bubbles.push({ owner: -2, text: `${this.chainTitle(ch)} x${n}!`, cls: 'combo', age: 0, life: 2.2, x: this.gino.s.x, y: this.gino.ch.height + 1.2, z: this.gino.s.z });
+    }
+  }
+
+  chainTitle(c) {
+    const n = c.ems.length;
+    if (n === 1) return c.ems[0].name;
+    const farts = c.ems.filter((e) => e.kind === 'fart').length, burps = n - farts;
+    if (n >= 6) return 'LEGENDARY BUTT PIG';
+    if (n >= 4) return 'BUTT PIG';
+    if (!burps) return 'Chain Farter';
+    if (!farts) return this.hero.id === 'boy' ? 'Burping Brat' : 'Belching Boomer';
+    return 'Two-Way Tornado';
+  }
+
+  chainScore(c) {
+    const n = c.ems.length;
+    const mixed = c.ems.some((e) => e.kind === 'fart') && c.ems.some((e) => e.kind === 'burp');
+    return Math.round(c.ems.reduce((a, e) => a + this.score(e), 0) * chainMult(n) * (mixed ? 1.2 : 1));
+  }
+
+  finalizeChain(c) {
+    c.done = true;
+    const sc = this.chainScore(c), n = c.ems.length;
+    const name = n > 1 ? `${this.chainTitle(c)} x${n}` : c.ems[0].name;
+    const clip = c.clip;
+    clip.stopAt = Math.min(MAX_FRAMES, clip.frames.length + 20);
+    clip.score = sc;
+    clip.name = name;
+    if (!this.best || sc > this.best.score) {
+      this.best = { score: sc, name, clip };
+      this.ui.toast(`NEW BEST! ${name} ${sc.toLocaleString('en-US')}`, 'gold');
+    } else {
+      this.ui.toast(`${name}: ${sc.toLocaleString('en-US')} (best ${this.best.score.toLocaleString('en-US')})`);
+    }
+  }
+
+  // The combo being built right now, for the HUD.
+  liveCombo() {
+    const c = this.chains.filter((x) => !x.done).at(-1);
+    if (!c) return null;
+    return { name: c.ems.length > 1 ? `${this.chainTitle(c)} x${c.ems.length}` : c.ems[0].name, score: this.chainScore(c), n: c.ems.length,
+      people: c.ems.reduce((a, e) => a + e.people, 0) };
   }
 
   // Tell everyone nearby that something just happened. dirSign -1 = blast goes out the back.
@@ -403,7 +468,7 @@ export class Game {
     const burp = em.kind === 'burp';
     let pose = POSE.SHOCK, dur = 1.6, text = '', cls = '', pts = 0, voice = null;
     switch (type) {
-      case 'fan': pose = POSE.THUMBS; dur = 2.4; text = pick(burp ? this.lines.fanBurp : this.lines.fan); cls = 'fan'; pts = 20 + 12 * t; voice = 'ooh'; em.fans++; break;
+      case 'fan': pose = POSE.THUMBS; dur = 2.4; text = pick(em.chain?.ems.length > 1 ? this.lines.fanCombo : burp ? this.lines.fanBurp : this.lines.fan); cls = 'fan'; pts = 20 + 12 * t; voice = 'ooh'; em.fans++; break;
       case 'fanClose': pose = POSE.THUMBS; dur = 2.8; text = pick(this.lines.fanClose); cls = 'fan'; pts = 35 + 18 * t; voice = 'ooh'; em.fans++; break;
       case 'meh': pose = POSE.SHOCK; dur = 1.3; text = pick(this.lines.meh); pts = 5 + 3 * t; voice = 'gasp'; break;
       case 'blast': pose = POSE.SHOCK; dur = 1.8; text = pick(this.lines.blast); pts = 15 + 6 * t; s.green = 0.6; voice = 'eww'; break;
@@ -628,6 +693,7 @@ export class Game {
     this.over = true;
     this.charge = null;
     for (const em of this.emissions) if (!em.done) this.finalize(em);
+    for (const c of this.chains) if (!c.done) this.finalizeChain(c);
     this.ui.ended(reason);
   }
 }
