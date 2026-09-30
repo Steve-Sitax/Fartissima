@@ -1,4 +1,14 @@
-# Sound credits
+# Credits
+
+## Code and fonts
+
+| Part | Licence |
+|---|---|
+| [three.js](https://threejs.org) by the three.js authors | MIT, full text in [public/THIRD-PARTY-NOTICES.txt](public/THIRD-PARTY-NOTICES.txt) |
+| [Vite](https://vite.dev) (build tool only, not shipped) | MIT |
+| Fonts [Bangers](https://fonts.google.com/specimen/Bangers) and [Nunito](https://fonts.google.com/specimen/Nunito) via Google Fonts | SIL Open Font License 1.1 |
+
+## Sound credits
 
 All sounds come from [Freesound](https://freesound.org) and carry the [Creative Commons 0](https://creativecommons.org/publicdomain/zero/1.0/) licence (public domain).
 No attribution is required. We list the creators anyway, because they earned it.
