@@ -5,7 +5,7 @@ import { renderFart, FART_VOICE } from './synth.js';
 import { Music } from './music.js';
 
 const rand = (a, b) => a + Math.random() * (b - a);
-const SETTINGS_KEY = 'fartissima.settings.v3';   // v3: quieter music by default
+const SETTINGS_KEY = 'fartissima.settings.v4';   // v4: music starts very low
 
 export class Sfx {
   constructor() {
@@ -16,7 +16,7 @@ export class Sfx {
     this.active = new Set();
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { /* first run */ }
-    this.settings = { mode: 'real', music: 0.3, amb: 0.8, ...saved };
+    this.settings = { mode: 'real', music: 0.15, amb: 0.8, ...saved };
   }
 
   saveSettings() {

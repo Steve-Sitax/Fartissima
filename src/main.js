@@ -139,7 +139,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keys.add(e.code);
   if (e.code === 'Escape' && state === 'play' && !document.pointerLockElement) pause();
-  if (e.code === 'KeyM') { sfx.settings.music = sfx.settings.music > 0 ? 0 : 0.3; sfx.saveSettings(); refreshSettings(); }
+  if (e.code === 'KeyM') { sfx.settings.music = sfx.settings.music > 0 ? 0 : 0.15; sfx.saveSettings(); refreshSettings(); }
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
