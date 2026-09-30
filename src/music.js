@@ -16,7 +16,7 @@ export class Music {
   constructor(ctx, dest) {
     this.ctx = ctx;
     this.out = ctx.createGain();
-    this.out.gain.value = 0.55;
+    this.out.gain.value = 0.2;
     this.out.connect(dest);
     this.cache = new Map();
     this.timer = null;
@@ -114,5 +114,6 @@ export class Music {
 
   stop() { clearInterval(this.timer); this.timer = null; }
 
-  set volume(v) { this.out.gain.setTargetAtTime(0.55 * v, this.ctx.currentTime, 0.2); }
+  // 100 % is still soft background music; the farts must always win
+  set volume(v) { this.out.gain.setTargetAtTime(0.2 * v, this.ctx.currentTime, 0.2); }
 }
