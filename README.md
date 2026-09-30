@@ -71,7 +71,7 @@ All recordings come from Freesound with the CC0 licence. See [CREDITS.md](CREDIT
 
 ## Licence
 
-Copyright (C) 2026 Steve-Sitax
+Copyright (C) 2026 Steve Windey
 
 The game code is free software under the **GNU General Public License v3.0 or later**.
 See [LICENSE](LICENSE).
