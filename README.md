@@ -14,6 +14,19 @@ Open http://127.0.0.1:5178, click **Choose your wind warrior**, pick a hero and 
 
 `npm run build` makes a static site in `dist/` that any web server can host.
 
+## Scoring
+
+Farts and burps fired within 2.5 seconds of each other form one **combo**. The scores add up and
+get multiplied: x1.5 for two, x2 for three, and so on. Mixing farts and burps adds 20 %.
+Burps always score a bit less than farts. Only your best combo counts.
+Combo names: Chain Farter, Belching Boomer (Burping Brat for Luca), Two-Way Tornado, BUTT PIG.
+
+## Play on a phone
+
+The game is published on GitHub Pages: https://steve-sitax.github.io/Fartissima/
+Turn the phone sideways. Left thumb: walk (push to the edge to run). Right thumb: hold FART or BURP,
+slide while holding to aim. Drag on the right half of the screen to look around.
+
 ## Controls
 
 | Action | Key |

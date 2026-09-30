@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#9bd35a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Fartissima</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💨</text></svg>" />
 </head>
@@ -20,9 +23,8 @@
     </div>
     <div id="scores" class="panel">
       <div id="timer">3:00</div>
-      <div class="best"><span>Best fart</span><b id="best-fart">0</b><small id="best-fart-lbl">-</small></div>
-      <div class="best"><span>Best burp</span><b id="best-burp">0</b><small id="best-burp-lbl">-</small></div>
-      <div class="total"><span>Score</span><b id="total">0</b></div>
+      <div class="best"><span>Best combo</span><b id="best-combo">0</b><small id="best-combo-lbl">-</small></div>
+      <div class="rule">Farts + burps within 2.5 s = one combo</div>
     </div>
     <div id="charge" class="hidden">
       <div id="charge-name">Little Misser</div>
@@ -31,6 +33,7 @@
     </div>
     <div id="live-score" class="hidden"></div>
     <div id="toasts"></div>
+    <div id="rotate-hint">📱↻ Turn your phone sideways</div>
     <div id="help">Click to grab the mouse &middot; mouse look &middot; WASD / ZQSD walk &middot; Shift run &middot; hold <b>Left mouse / F / Space</b> fart (mouse aims) &middot; hold <b>Right mouse / B</b> burp &middot; M music &middot; Esc pause</div>
   </div>
 
@@ -88,14 +91,9 @@
     <p id="res-sub"></p>
     <div class="res-grid">
       <div class="res-card">
-        <h3>💨 Best fart</h3>
-        <b id="res-fart">0</b><small id="res-fart-lbl">-</small>
-        <button id="btn-rp-fart">▶ Replay</button>
-      </div>
-      <div class="res-card">
-        <h3>🫧 Best burp</h3>
-        <b id="res-burp">0</b><small id="res-burp-lbl">-</small>
-        <button id="btn-rp-burp">▶ Replay</button>
+        <h3>💨 Best combo</h3>
+        <b id="res-combo">0</b><small id="res-combo-lbl">-</small>
+        <button id="btn-rp-combo">▶ Replay</button>
       </div>
       <div class="res-card hidden" id="res-shart-card">
         <h3>💩 Shart cam</h3>
@@ -103,7 +101,7 @@
         <button id="btn-rp-shart">▶ Replay</button>
       </div>
     </div>
-    <div class="total-line">Score: <b id="res-total">0</b> <span id="res-record"></span></div>
+    <div class="total-line"><span id="res-record"></span></div>
     <div class="buttons">
       <button id="btn-again" class="big">Play again</button>
       <button id="btn-change">Change warrior</button>
@@ -116,18 +114,12 @@
     <h2>Hall of Fame</h2>
     <p>The best of all time, on this computer.</p>
     <div class="res-grid">
-      <div class="res-card">
-        <h3>💨 Best fart ever</h3>
-        <b id="hof-fart">0</b><small id="hof-fart-lbl">nothing yet</small>
-        <button id="btn-hof-fart">▶ Replay</button>
-      </div>
-      <div class="res-card">
-        <h3>🫧 Best burp ever</h3>
-        <b id="hof-burp">0</b><small id="hof-burp-lbl">nothing yet</small>
-        <button id="btn-hof-burp">▶ Replay</button>
+      <div class="res-card wide">
+        <h3>💨 Best combo ever</h3>
+        <b id="hof-combo">0</b><small id="hof-combo-lbl">nothing yet</small>
+        <button id="btn-hof-combo">▶ Replay</button>
       </div>
     </div>
-    <div class="total-line">Best game score: <b id="hof-total">0</b></div>
     <div class="buttons">
       <button id="btn-hof-back" class="big">Back</button>
       <button id="btn-hof-clear" class="danger">Forget everything</button>
