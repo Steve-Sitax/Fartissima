@@ -179,6 +179,7 @@ export class Game {
   // ---------- Gino ----------
   updatePlayer(dt, inp) {
     const g = this.gino, s = g.s;
+    this.camYaw = inp.yaw;   // where the camera looks: toxic scenes are staged in view
     if (this.dazeT > 0) {
       // whacked by the selfie stick: seeing stars, no walking, no blasting
       this.dazeT -= dt;
@@ -472,11 +473,18 @@ export class Game {
 
   // ---------- toxic combo events ----------
   // A combo past TOXIC points: one of these shows up (two past twice that). Each is over in 10 s.
-  toxicEvent(c) {
+  // only: force one scene (for tests)
+  toxicEvent(c, only) {
     c.toxic = true;
     const alive = c.ems.map((e) => e.cloud).filter((cl) => cl && this.clouds.includes(cl));
-    const target = alive.at(-1) || this.gino.s;
-    const kinds = ['birds', 'firetruck', 'hazmat', 'windows'].sort(() => Math.random() - 0.5);
+    // The scene plays at the cloud when you can see it. A fart while walking leaves the cloud
+    // behind the camera, so then the scene plays in front of you instead.
+    const h = this.gino.s, yaw = this.camYaw ?? h.rot;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    const cl = alive.at(-1);
+    const seen = cl && ((cl.x - h.x) * fx + (cl.z - h.z) * fz) > 2 && Math.hypot(cl.x - h.x, cl.z - h.z) < 28;
+    const target = seen ? cl : clampToWalkable({ x: h.x + fx * 8, z: h.z + fz * 8 }, 2);
+    const kinds = only ? [only] : ['birds', 'firetruck', 'hazmat', 'windows'].sort(() => Math.random() - 0.5);
     const count = this.chainScore(c) >= TOXIC * 2 ? 2 : 1;
     this.ui.toast('☢️ TOXIC COMBO! ☢️', 'gold');
     // toxic clouds hang around longer, but thinner, so you can watch what happens inside them
