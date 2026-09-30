@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#9bd35a" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Fartissima</title>
@@ -12,6 +15,14 @@
 <body>
   <canvas id="game"></canvas>
   <div id="bubbles"></div>
+  <div id="rotate-hint">📱↻ Turn your phone sideways</div>
+
+  <!-- Phones: one tap to go full screen and sideways before anything else -->
+  <div id="tapstart" class="screen hidden">
+    <h1 class="logo"><span>F</span><span>A</span><span>R</span><span>T</span><span>I</span><span>S</span><span>S</span><span>I</span><span>M</span><span>A</span></h1>
+    <button id="btn-tapstart" class="big">👆 Tap to start</button>
+    <p class="fine">Full screen, phone sideways. Tip: "Add to Home screen" starts it like an app.</p>
+  </div>
 
   <!-- In-game HUD -->
   <div id="hud" class="hidden">
@@ -33,7 +44,6 @@
     </div>
     <div id="live-score" class="hidden"></div>
     <div id="toasts"></div>
-    <div id="rotate-hint">📱↻ Turn your phone sideways</div>
     <div id="help">Click to grab the mouse &middot; mouse look &middot; WASD / ZQSD walk &middot; Shift run &middot; hold <b>Left mouse / F / Space</b> fart (mouse aims) &middot; hold <b>Right mouse / B</b> burp &middot; M music &middot; Esc pause</div>
   </div>
 
