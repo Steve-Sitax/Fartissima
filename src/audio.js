@@ -237,6 +237,21 @@ export class Sfx {
     }
   }
 
+  // Camera shutter: two quick clicks.
+  shutter() {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t0 = ctx.currentTime;
+    for (const [dt, f] of [[0, 3000], [0.06, 1800]]) {
+      const b = ctx.createBuffer(1, 400, ctx.sampleRate), d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 4);
+      const s = ctx.createBufferSource(); s.buffer = b;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f;
+      const g = ctx.createGain(); g.gain.value = 0.5;
+      s.connect(bp).connect(g).connect(this.master);
+      s.start(t0 + dt);
+    }
+  }
+
   // A small bird hitting the cobbles.
   thud() {
     if (!this.ctx) return;

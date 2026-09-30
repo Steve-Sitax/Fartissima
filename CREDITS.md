@@ -206,3 +206,14 @@ No attribution is required. We list the creators anyway, because they earned it.
 | [159347](https://freesound.org/s/159347/) | Vacuum Cleaner 3 - sucking short | Huminaatio |
 | [528250](https://freesound.org/s/528250/) | pigeons_fly away_ wing flaps_CsG | csaszi |
 | [564230](https://freesound.org/s/564230/) | Huge Slap in the Face | njjjjjjjjjjjjjjjjjjjjjjjj |
+
+## School trip and feeling sick
+
+| Freesound ID | Title | Creator |
+|---|---|---|
+| [371342](https://freesound.org/s/371342/) | D2_kidslaughing.mp3 | Iamgiorgio |
+| [365632](https://freesound.org/s/365632/) | Boy or Young Child Laughing | OBXJohn |
+| [86991](https://freesound.org/s/86991/) | Giggling.wav | mrbriandesign |
+| [421832](https://freesound.org/s/421832/) | scream.mp3 | rivercold |
+| [316648](https://freesound.org/s/316648/) | yell kid male help help.aiff | bevibeldesign |
+| [446001](https://freesound.org/s/446001/) | Gagging / Vomit / Throwing up | Breviceps |

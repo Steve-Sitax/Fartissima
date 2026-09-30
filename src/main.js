@@ -80,6 +80,8 @@ function handleEvent(ev, speed = 1) {
   if (ev.fx === 'wind') { wind.spawn(ev); return; }
   if (ev.fx === 'toxic') { happen.spawn(ev, camera); return; }
   if (ev.fx === 'train') { fartTrain(ev.n); return; }
+  if (ev.fx === 'puke') { wind.spawnPuke(ev); return; }
+  if (ev.fx === 'flash') { cameraFlash(); return; }
   if (ev.say) return; // skip calls stored in older replays
   if (ev.synth) { sfx[ev.synth]?.(); return; }
   let pan = 0, dist = 1;
@@ -439,6 +441,15 @@ function stopReplay() {
   $('replay-ui').classList.add('hidden');
 }
 
+// ---------- the wedding photographer's flash ----------
+function cameraFlash() {
+  const el = $('flash');
+  el.classList.remove('go');
+  void el.offsetWidth;
+  el.classList.add('go');
+  sfx.shutter();
+}
+
 // ---------- fart train: five farts in a row inside one combo ----------
 function fartTrain(n) {
   const el = $('train');
@@ -557,6 +568,11 @@ function loop(now) {
     if (state === 'play') updateHud();
     aim.update(state === 'play' ? game.chargeInfo() : null, gs, t);
     if (state !== 'pause') { wind.update(dt, camera.position); happen.update(dt); }
+  }
+  // anyone standing right inside the camera is hidden, so the screen never fills with one shirt
+  for (const c of chars) {
+    const dx = c.root.position.x - camera.position.x, dz = c.root.position.z - camera.position.z;
+    c.root.visible = dx * dx + dz * dz > 1.1;
   }
   renderer.render(scene, camera);
   bubbles.draw(state === 'choose' && !replaying ? [] : bubbleList.concat(happen.bubbles()), chars, camera, window.innerWidth, window.innerHeight);

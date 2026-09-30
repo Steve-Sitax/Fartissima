@@ -35,7 +35,7 @@ export class Replay {
   start(clip) {
     this.group.clear();
     this.clip = clip;
-    this.chars = [new Character('hero', 1, clip.hero || 'fat'), ...clip.roster.map(([k, seed]) => new Character(KINDS[k], seed))];
+    this.chars = [new Character('hero', 1, clip.hero || 'fat'), ...clip.roster.map(([k, seed, variant]) => new Character(KINDS[k], seed, variant || undefined))];
     for (const c of this.chars) this.group.add(c.root);
     this.states = this.chars.map(() => newState());
     this.group.visible = true;

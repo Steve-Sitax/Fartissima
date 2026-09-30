@@ -7,7 +7,7 @@ import { FOODS, FART_NAMES, BURP_NAMES, LINES, pick, heroById } from './data.js'
 import { clampToWalkable, randomSpot, HALF } from './world.js';
 import { fartParams, shartParams } from './synth.js';
 
-export const KINDS = ['hero', 'man', 'fan', 'woman', 'lady'];
+export const KINDS = ['hero', 'man', 'fan', 'woman', 'lady', 'kid', 'teacher', 'stag', 'bride', 'suit', 'photog'];
 export const ROUND_TIME = 180;
 export const SNAP_DT = 1 / 20;
 const PRE_FRAMES = 40;           // 2 s of footage before the blast
@@ -17,6 +17,9 @@ const BURP_FACTOR = 0.8;    // burps always score a bit less than farts
 const TOXIC = 10000;        // a combo this big sets off a toxic event
 const LADY_CHASE = 5;      // seconds the fancy lady chases you
 const DAZE = 2.5;          // seconds you see stars after her selfie stick
+const PARK = 400;          // special visitors wait far outside the square until their event
+const FEMALE = new Set(['woman', 'lady', 'teacher', 'bride']);
+const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
 export const chainMult = (n) => 1 + 0.35 * (Math.min(n, 7) - 1);
 const TIER_AT = [10, 24, 42, 65]; // gas used -> size tier 1..5
 const BASE = [10, 25, 50, 90, 150];
@@ -84,7 +87,25 @@ export class Game {
         n.mode = 'chat'; n.modeT = 5 + Math.random() * 30;
       }
     }
-    this.roster = this.npcs.map((n) => [KINDS.indexOf(n.kind), n.seed]);
+    // Special events, each at most once per game: a school trip, a stag party, wedding photos.
+    // Their people exist from the start (so replays know them) but wait far outside the square.
+    const add = (kind, troupe, role, variant) => {
+      const i = this.npcs.length, seed = 5000 + i * 13 + ((Math.random() * 1000) | 0);
+      const ch = new Character(kind, seed, variant);
+      this.group.add(ch.root);
+      const n = { ch, kind, seed, variant, s: newState(PARK + i, PARK), target: { x: 0, z: 0 }, speed: 1.3, mode: 'parked', modeT: 0, pending: null,
+        hairT: 0, fleeFrom: null, reactPose: 0, group: null, slot: -1, chaseCd: 0, troupe, role, visitor: true };
+      this.npcs.push(n);
+      return n;
+    };
+    this.troupes = {
+      school: { members: [add('teacher', 'school', 'lead'), ...Array.from({ length: this.npcCount ? 7 : 10 }, () => add('kid', 'school', 'kid'))] },
+      stag: { members: [add('stag', 'stag', 'lead', 'groom'), ...Array.from({ length: 5 }, () => add('stag', 'stag', 'member'))] },
+      wedding: { members: [add('bride', 'wedding', 'lead'), add('suit', 'wedding', 'groom'), add('photog', 'wedding', 'photog')] },
+    };
+    shuffle(Object.keys(this.troupes)).forEach((k, j) => Object.assign(this.troupes[k], { at: 25 + j * 50 + Math.random() * 15, done: false, active: false }));
+    this.activeTroupe = null;
+    this.roster = this.npcs.map((n) => [KINDS.indexOf(n.kind), n.seed, n.variant || null]);
     this.clouds = [];
     this.foods = Array.from({ length: 10 }, () => spawnFood(this.gino.s));
     this.bubbles = [];
@@ -133,6 +154,7 @@ export class Game {
       if (this.gino.poseT > 0) this.gino.poseT -= dt; else this.gino.s.pose = POSE.NORMAL;
     }
     this.updateGroups(dt);
+    if (!attract && !this.over) this.updateTroupes(dt);
     this.updateNpcs(dt);
     for (const c of this.clouds) {
       if (!c.suck || this.time < c.suck.at) continue;
@@ -387,11 +409,21 @@ export class Game {
   addPoints(em, pts, npcIdx) {
     if (em.done || em.kind === 'shart') return;
     const n = this.npcs[npcIdx];
-    const lady = n.kind === 'lady';
-    pts = Math.round(pts * (lady ? 2 : 1));   // the fancy lady is worth double
+    const lady = n.kind === 'lady' || n.kind === 'bride';
+    pts = Math.round(pts * (lady ? 2 : 1));   // the fancy lady and the bride are worth double
     em.points += pts;
     em.people++;
     this.bubbles.push({ owner: -2, text: `+${pts}${lady ? ' x2' : ''}`, cls: 'pts', age: 0, life: 1.9, x: n.s.x, y: n.ch.height + 0.9, z: n.s.z });
+    // a woman who gets both a fart and a burp in one combo may feel sick
+    const c = em.chain;
+    if (c && FEMALE.has(n.kind) && (em.kind === 'fart' || em.kind === 'burp')) {
+      (em.kind === 'fart' ? (c.hitF ||= new Set()) : (c.hitB ||= new Set())).add(npcIdx);
+      c.puked ||= new Set();
+      if (c.hitF?.has(npcIdx) && c.hitB?.has(npcIdx) && !c.puked.has(npcIdx)) {
+        c.puked.add(npcIdx);
+        if (Math.random() < 0.25) this.puke(n, npcIdx, em);
+      }
+    }
   }
 
   finalize(em) {
@@ -535,6 +567,12 @@ export class Game {
       const dx = n.s.x - s.x, dz = n.s.z - s.z, d = Math.hypot(dx, dz) || 0.01;
       const inBlast = d < blastR && (d < 1.6 || (dx * fx + dz * fz) / d > BLAST_COS);
       let type = null, delay = 0.05;
+      if (n.mode === 'parked') return;
+      if (n.visitor) {
+        type = this.visitorReaction(n, em, inBlast, d < hearR);
+        if (type) n.pending = { type, at: this.time + (inBlast ? 0.05 : 0.15 + d / 40 + Math.random() * 0.3), em };
+        return;
+      }
       const female = n.kind === 'woman' || n.kind === 'lady';
       if (inBlast) type = female ? 'hair' : n.kind === 'fan' ? 'fanClose' : 'blast';
       else if (d < hearR) {
@@ -572,6 +610,34 @@ export class Game {
         pose = POSE.CURSE; dur = 2.8; text = pick(this.lines.curse); cls = 'curse'; pts = 60 + 20 * t; voice = 'gasp';
         s.hair = 1; n.hairT = 9; s.red = 1;
         break;
+      // ---- special visitors
+      case 'kidLaugh': pose = POSE.THUMBS; dur = 1.8; text = pick(this.lines.kidLaugh); cls = 'fan'; pts = 18 + 8 * t; n.after = 'scatter';
+        if (!em.kidLaughed) { em.kidLaughed = true; this.emit({ f: Math.random() < 0.5 ? 'kid_laugh_boy' : 'kid_laugh_group', rate: 1, gain: 0.8, x: s.x, z: s.z }); } break;
+      case 'kidEww': pose = POSE.FLEE; dur = 0.5; text = pick(this.lines.kidEww); cls = 'curse'; pts = 14 + 7 * t; n.after = 'scatter';
+        if (!em.kidScream) { em.kidScream = true; this.emit({ f: Math.random() < 0.3 ? 'kid_help' : 'kid_scream', rate: 1, gain: 0.75, x: s.x, z: s.z }); } break;
+      case 'kidGiggle': pose = POSE.TALK; dur = 1.3; text = pick(this.lines.kidGiggle); cls = 'chat'; pts = 8 + 3 * t;
+        if (!em.kidGiggled) { em.kidGiggled = true; this.emit({ f: 'kid_giggle', rate: 1, gain: 0.6, x: s.x, z: s.z }); } break;
+      case 'teacher': pose = POSE.SHOCK; dur = 1.6; text = pick(this.lines.teacher); cls = 'curse'; pts = 30 + 10 * t; voice = 'gasp'; n.after = 'scatter'; break;
+      case 'stag': {
+        pose = POSE.THUMBS; dur = 2.2; cls = 'fan'; pts = (20 + 12 * t) * 1.5;
+        const name = this.hero.name.split(' ').pop().toUpperCase();
+        text = Math.random() < 0.5 ? `${name}! ${name}! ${name}!` : pick(this.lines.stagCheer);
+        if (!em.stagRoar) { em.stagRoar = true; this.emit({ s: 'voice', f: this.sfx.voice('crowd_ooh').f, rate: 0.9, gain: 0.8, x: s.x, z: s.z }); }
+        break;
+      }
+      case 'bride': pose = POSE.CURSE; dur = 2.4; text = pick(this.lines.bride); cls = 'curse'; pts = 60 + 20 * t; voice = 'gasp';
+        s.hair = 1; n.hairT = 6; s.red = 1; n.after = 'leave'; this.troupes.wedding.upset = true; break;
+      case 'groomW': pose = POSE.SHOCK; dur = 1.8; text = pick(this.lines.groom); pts = 20 + 8 * t; n.after = 'leave'; this.troupes.wedding.upset = true; break;
+      case 'photo': pose = POSE.PHOTO; dur = 2; text = pick(this.lines.photog); cls = 'fan'; pts = 25 + 10 * t;
+        this.emit({ fx: 'flash' }); break;
+    }
+    if (n.visitor) {
+      if (n.mode !== 'react') n.prevMode = n.mode;
+      n.mode = 'react'; n.modeT = dur; n.reactPose = pose;
+      this.say(i, text, cls);
+      if (voice && em.voices < 3) this.voice(voice, n, em);
+      this.addPoints(em, pts, i);
+      return;
     }
     if (n.kind === 'lady' && type === 'hair' && em.tier >= 3 && em.kind !== 'shart' && n.chaseCd <= 0) {
       // a hard one right next to her: the selfie stick goes up and she comes for you
@@ -643,6 +709,11 @@ export class Game {
     const gs = this.gino.s;
     this.npcs.forEach((n, i) => {
       const s = n.s;
+      if (n.mode === 'parked') {
+        // waiting far outside the square for their special event
+        s.x = PARK + i; s.z = PARK; s.move = 0; s.pose = POSE.NORMAL; s.hair = 0;
+        return;
+      }
       s.green = Math.max(0, s.green - dt * 0.2);
       s.red = Math.max(0, s.red - dt * 0.25);
       if (n.hairT > 0) n.hairT -= dt; else s.hair = Math.max(0, s.hair - dt * 0.3);
@@ -682,8 +753,9 @@ export class Game {
           vx = dx / d; vz = dz / d; speed = 4.6;
           s.pose = POSE.FLEE;
           if (!this.clouds.includes(c) || d > smellRadius(c) + 2.5) {
-            n.mode = 'walk'; s.pose = POSE.NORMAL;
-            n.target = randomSpot();
+            s.pose = POSE.NORMAL;
+            if (n.visitor) this.visitorResume(n, true);
+            else { n.mode = 'walk'; n.target = randomSpot(); }
           }
           break;
         }
@@ -693,7 +765,8 @@ export class Game {
           s.rot = lerpAngle(s.rot, Math.atan2(gs.x - s.x, gs.z - s.z), dt * 8);
           if (n.modeT <= 0) {
             s.pose = POSE.NORMAL;
-            if (n.group) { n.mode = 'toChat'; } else n.mode = 'walk';
+            if (n.visitor) this.visitorResume(n, false);
+            else if (n.group) { n.mode = 'toChat'; } else n.mode = 'walk';
           }
           break;
         }
@@ -701,6 +774,44 @@ export class Game {
           n.modeT -= dt;
           s.pose = n.kind === 'lady' ? POSE.SELFIE : POSE.NORMAL;
           if (n.modeT <= 0) this.nextPlan(n, i);
+          break;
+        }
+        case 'puke': {
+          n.modeT -= dt;
+          s.pose = POSE.PUKE;
+          if (n.modeT <= 0) { s.pose = POSE.NORMAL; if (n.visitor) this.visitorResume(n, true); else { n.mode = 'walk'; n.target = randomSpot(); } }
+          break;
+        }
+        case 'guide': case 'goto': case 'leave': case 'scatter': {
+          // special visitors walking a route, going to a spot, leaving, or running off the square
+          const tgt = n.mode === 'guide' ? n.path[n.wp] : n.target;
+          const dx = tgt.x - s.x, dz = tgt.z - s.z, d = Math.hypot(dx, dz);
+          s.pose = n.mode === 'scatter' ? POSE.FLEE : POSE.NORMAL;
+          const sp = n.mode === 'scatter' ? (n.kind === 'kid' ? 4.2 : 3.8) : n.mode === 'leave' ? n.speed * 1.4 : n.speed;
+          // a spot in a crowd is never reached exactly: close enough counts
+          if (d > (n.mode === 'goto' ? 0.9 : 0.35)) { vx = dx / d; vz = dz / d; speed = Math.min(sp, d * 3 + 0.3); }
+          else if (n.mode === 'guide' && n.wp < n.path.length - 1) n.wp++;
+          else if (n.mode === 'goto') { n.mode = 'pose'; }
+          else { n.mode = 'parked'; }          // off the square: gone until the next game
+          break;
+        }
+        case 'trip': {
+          // follow the one in front, a small step behind
+          const f = n.front;
+          if (!f || f.mode === 'parked' || f.mode === 'scatter' || f.mode === 'leave') { n.mode = n.kind === 'kid' ? 'scatter' : 'leave'; n.target = this.exitFrom(s); break; }
+          const fx = f.s.x - Math.sin(f.s.rot) * 0.9, fz = f.s.z - Math.cos(f.s.rot) * 0.9;
+          const dx = fx - s.x, dz = fz - s.z, d = Math.hypot(dx, dz);
+          s.pose = POSE.NORMAL;
+          if (d > 0.25) { vx = dx / d; vz = dz / d; speed = Math.min(2.6, d * 2.2); }
+          break;
+        }
+        case 'pose': {
+          // wedding photo: stand still, face the photographer (who faces the couple)
+          s.move = 0;
+          const w = this.troupes.wedding;
+          const look = n.role === 'photog' ? w.members[0].s : w.members[2].s;
+          s.rot = lerpAngle(s.rot, Math.atan2(look.x - s.x, look.z - s.z), dt * 5);
+          s.pose = n.role === 'photog' ? POSE.PHOTO : POSE.NORMAL;
           break;
         }
         case 'chase': {
@@ -763,6 +874,118 @@ export class Game {
       }
       clampToWalkable(s, 0.4);
     });
+  }
+
+  // ---------- special events ----------
+  updateTroupes(dt) {
+    for (const [key, tr] of Object.entries(this.troupes)) {
+      if (!tr.done && !this.activeTroupe && this.time >= tr.at) this.startTroupe(key);
+    }
+    const key = this.activeTroupe;
+    if (!key) return;
+    const tr = this.troupes[key];
+    tr.t += dt;
+    const active = tr.members.filter((m) => m.mode !== 'parked');
+    // chatter while they walk
+    tr.talkT -= dt;
+    if (tr.talkT <= 0 && active.length) {
+      tr.talkT = 3 + Math.random() * 3;
+      const m = pick(active);
+      const lines = key === 'school' ? (m.role === 'lead' ? this.lines.teacherLead : this.lines.kidChat) : key === 'stag' ? this.lines.stagWalk : null;
+      if (lines && m.mode !== 'react' && m.mode !== 'scatter') this.say(this.npcs.indexOf(m), pick(lines), 'chat');
+    }
+    if (key === 'wedding') {
+      if (tr.t > 20) for (const m of tr.members) if (m.mode === 'goto') m.mode = 'pose';   // pose where they are
+      if (tr.members.every((m) => m.mode === 'pose')) tr.posed = (tr.posed || 0) + dt;
+      if ((tr.posed > 22 || tr.upset) && !tr.leaving) {
+        tr.leaving = true;
+        const exit = this.exitFrom(tr.members[0].s);
+        for (const m of tr.members) if (m.mode === 'pose' || m.mode === 'goto') { m.mode = 'leave'; m.target = exit; }
+      }
+    }
+    if (!active.length || tr.t > 80) {
+      for (const m of tr.members) m.mode = 'parked';
+      tr.active = false; tr.done = true; this.activeTroupe = null;
+    }
+  }
+
+  // the nearest edge of the square, seen from p
+  exitFrom(p) {
+    const e = HALF - 0.6;
+    const opts = [{ x: -e, z: p.z }, { x: e, z: p.z }, { x: p.x, z: -e }, { x: p.x, z: e }];
+    return opts.sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+  }
+
+  startTroupe(key) {
+    const tr = this.troupes[key];
+    tr.active = true; tr.t = 0; tr.talkT = 1; this.activeTroupe = key;
+    const e = HALF - 1;
+    // come in from a random side, leave on the opposite side
+    const side = (Math.random() * 4) | 0, off = (Math.random() * 2 - 1) * 18;
+    const pts = [[-e, off], [e, off], [off, -e], [off, e]];
+    const [ax, az] = pts[side], [bx, bz] = pts[side ^ 1];
+    const dirX = Math.sign(bx - ax), dirZ = Math.sign(bz - az);
+    // swing around the fountain
+    const mid = { x: dirX ? 0 : off + 12 * Math.sign(off || 1), z: dirZ ? 0 : off + 12 * Math.sign(off || 1) };
+    const path = [{ x: ax, z: az }, mid, { x: bx, z: bz }];
+    tr.members.forEach((m, k) => {
+      m.s.x = ax - dirX * k * 0.9; m.s.z = az - dirZ * k * 0.9;
+      m.s.rot = Math.atan2(dirX, dirZ);
+      m.pending = null; m.after = null;
+      m.speed = key === 'stag' ? 1.7 : key === 'wedding' ? 2 : 1.5;
+      if (key === 'wedding') {
+        // walk to the fountain and pose: bride, groom next to her, photographer in front
+        const a = Math.atan2(ax, az), P = { x: Math.sin(a) * 7.4, z: Math.cos(a) * 7.4 };
+        const side2 = { x: Math.cos(a) * 0.8, z: -Math.sin(a) * 0.8 };
+        m.mode = 'goto';
+        m.target = m.role === 'lead' ? P : m.role === 'groom' ? { x: P.x + side2.x, z: P.z + side2.z } : { x: Math.sin(a) * 11.5, z: Math.cos(a) * 11.5 };
+      } else if (k === 0) { m.mode = 'guide'; m.path = path; m.wp = 1; }
+      else { m.mode = 'trip'; m.front = tr.members[k - 1]; }
+    });
+    const msg = { school: '🏫 A school trip is crossing the piazza!', stag: '🍻 A stag party is in town!', wedding: '💒 Wedding photos at the fountain!' }[key];
+    this.ui.toast(msg, 'gold');
+  }
+
+  // which reaction a special visitor has to a blast
+  visitorReaction(n, em, inBlast, hears) {
+    if (!inBlast && !hears) return null;
+    const hard = inBlast || em.tier >= 3;
+    switch (n.kind) {
+      case 'kid': return em.kind === 'burp' && !n.ch.girl && hard ? 'kidLaugh' : hard ? 'kidEww' : 'kidGiggle';
+      case 'teacher': return hard ? 'teacher' : 'womanMeh';
+      case 'stag': return 'stag';
+      case 'bride': return hard ? 'bride' : 'womanMeh';
+      case 'suit': return hard ? 'groomW' : 'meh';
+      case 'photog': return 'photo';
+    }
+    return null;
+  }
+
+  // what a special visitor does after a reaction (fled = after running from a cloud)
+  visitorResume(n, fled) {
+    const next = n.after || (fled ? (n.troupe === 'stag' ? n.prevMode : n.troupe === 'school' ? 'scatter' : 'leave') : n.prevMode);
+    n.after = null;
+    n.mode = next || 'leave';
+    if (n.mode === 'scatter') {
+      // run away from the hero, off the nearest edge in that direction
+      const g = this.gino.s, dx = n.s.x - g.x, dz = n.s.z - g.z, d = Math.hypot(dx, dz) || 1;
+      n.target = clampToWalkable({ x: n.s.x + (dx / d) * 60, z: n.s.z + (dz / d) * 60 }, 0.6);
+    } else if (n.mode === 'leave') n.target = this.exitFrom(n.s);
+    else if (n.mode === 'pose' && this.troupes.wedding.leaving) { n.mode = 'leave'; n.target = this.exitFrom(n.s); }
+  }
+
+  // too much: she has to throw up (both a fart and a burp in the same combo)
+  puke(n, i, em) {
+    this.leaveGroup(n);
+    if (n.mode !== 'puke' && n.visitor) n.prevMode = n.mode === 'react' ? n.prevMode : n.mode;
+    n.mode = 'puke'; n.modeT = 3;
+    n.s.pose = POSE.PUKE;
+    const fx = Math.sin(n.s.rot), fz = Math.cos(n.s.rot);
+    this.emit({ f: 'fx_puke', rate: 1, gain: 0.9, x: n.s.x, z: n.s.z });
+    this.emit({ fx: 'puke', x: n.s.x + fx * 0.35, y: n.ch.height * 0.72, z: n.s.z + fz * 0.35, dx: fx, dz: fz });
+    this.say(i, pick(this.lines.puke), 'curse');
+    em.points += 40 + 10 * em.tier;
+    this.bubbles.push({ owner: -2, text: `🤮 +${40 + 10 * em.tier}`, cls: 'pts', age: 0, life: 2, x: n.s.x, y: n.ch.height + 1.2, z: n.s.z });
   }
 
   // What does a pedestrian do next? Join a chat, stand around, or stroll on.

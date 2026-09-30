@@ -6,11 +6,14 @@ for f in glob.glob('q_*.json') + ['meta_fx.json']:  # meta_fx.json: the picks, r
     for x in json.load(open(f)): meta[x['id']] = x
 # id: (name, start s, length s)
 PICK = {'71778': ('fx_whistle', 0, 3.2), '139324': ('fx_siren', 0, 5.8), '159347': ('fx_vacuum', 3, 5),
-        '528250': ('fx_pigeons', 0, 4.2), '564230': ('fx_slap', 0, 1.3)}
+        '528250': ('fx_pigeons', 0, 4.2), '564230': ('fx_slap', 0, 1.3),
+        # school trip: children laughing, giggling, screaming; and someone being sick
+        '371342': ('kid_laugh_group', 0, 3.2), '365632': ('kid_laugh_boy', 0, 2.6), '86991': ('kid_giggle', 0.3, 3),
+        '421832': ('kid_scream', 0, 2.2), '316648': ('kid_help', 0, 1.9), '446001': ('fx_puke', 0, 1.9)}
 pools = {}
 for i, (name, ss, t) in PICK.items():
     m = meta[i]; fn = f'raw/{name}_{i}.mp3'
-    if not os.path.exists(fn): urllib.request.urlretrieve(m['mp3'], fn)
+    if not os.path.exists(fn): urllib.request.urlretrieve(m['mp3'], fn)  # CC0 previews from Freesound
     raw = subprocess.run(['ffmpeg', '-v', 'quiet', '-ss', str(ss), '-i', fn, '-t', str(t), '-ac', '1', '-ar', str(SR), '-f', 's16le', '-'], capture_output=True).stdout
     y = np.frombuffer(raw, np.int16).astype(np.float32) / 32768
     y = y / (np.abs(y).max() + 1e-9) * 0.89

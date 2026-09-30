@@ -4,7 +4,7 @@
 // { x, z, rot, walk, move, pose, hair, green, red, stain } - the same numbers the replay stores.
 import * as THREE from 'three';
 
-export const POSE = { NORMAL: 0, THUMBS: 1, FLEE: 2, CURSE: 3, SHOCK: 4, FART: 5, BURP: 6, SHART: 7, EAT: 8, TALK: 9, DAZED: 10, SELFIE: 11, CHASE: 12, MEASURE: 13, WRITE: 14 };
+export const POSE = { NORMAL: 0, THUMBS: 1, FLEE: 2, CURSE: 3, SHOCK: 4, FART: 5, BURP: 6, SHART: 7, EAT: 8, TALK: 9, DAZED: 10, SELFIE: 11, CHASE: 12, MEASURE: 13, WRITE: 14, PUKE: 15, PHOTO: 16 };
 
 function rng(seed) {
   let a = seed >>> 0;
@@ -123,6 +123,30 @@ export class Character {
       // nuclear team: white suit, yellow boots, gas mask, a Geiger counter or a clipboard
       look = { s: 1, build: 'chubby', skin: '#f2c9a0', top: '#f4f4f4', sleeves: 'long', bottom: 'pants', pants: '#f4f4f4', shoes: '#f1c40f',
         headR: 0.155, hair: 'hood', hairColor: '#f4f4f4', mask: true, tool: variant === 'writer' ? 'clipboard' : 'geiger' };
+    } else if (kind === 'kid') {
+      // school trip: small, big head, backpack; about half are girls
+      const girl = r() < 0.5;
+      this.girl = girl;
+      look = { s: 0.64 + r() * 0.08, build: 'child', skin: pickC(SKINS), top: pickC(SHIRTS), sleeves: 'short', bottom: girl && r() < 0.6 ? 'skirt' : 'shorts',
+        skirt: pickC(SKIRTS), pants: pickC(PANTS), shoes: pickC(['#e74c3c', '#2980b9', '#f1c40f', '#111']), headR: 0.19,
+        hair: girl ? 'long' : pickC(['mop', 'short', 'cap']), hairLen: 0.12 + r() * 0.12, hairColor: pickC(HAIRS), cap: pickC(['#e74c3c', '#2980b9', '#27ae60']),
+        backpack: pickC(['#e67e22', '#9b59b6', '#16a085', '#c0392b']) };
+    } else if (kind === 'teacher') {
+      look = { s: 0.97, build: 'woman', skin: pickC(SKINS), top: '#6c5ce7', sleeves: 'long', bottom: 'skirt', skirt: '#2d3436', pants: '#2d3436', shoes: '#111',
+        headR: 0.148, hair: 'bun', hairColor: pickC(HAIRS), glasses: true, flag: '#f1c40f', lips: true };
+    } else if (kind === 'stag') {
+      // stag party: matching pink shirts; the groom-to-be (variant 'groom') wears a veil
+      look = { s: 0.95 + r() * 0.1, build: r() < 0.5 ? 'normal' : 'chubby', skin: pickC(SKINS), top: '#ff4fa3', sleeves: 'short', bottom: 'pants', pants: pickC(PANTS),
+        shoes: '#222', headR: 0.152, hair: pickC(['short', 'curly', 'short']), hairColor: pickC(HAIRS), veil: variant === 'groom' ? 'party' : null };
+    } else if (kind === 'bride') {
+      look = { s: 0.96, build: 'woman', skin: pickC(SKINS), top: '#ffffff', sleeves: 'none', bottom: 'dress', skirt: '#ffffff', pants: '#ffffff', shoes: '#ffffff',
+        headR: 0.148, hair: 'bun', hairColor: pickC(HAIRS), veil: 'bride', bouquet: true, lips: true };
+    } else if (kind === 'suit') {
+      look = { s: 1.02, build: 'normal', skin: pickC(SKINS), top: '#1f1f1f', sleeves: 'long', bottom: 'pants', pants: '#1f1f1f', shoes: '#111', headR: 0.152,
+        hair: 'short', hairColor: pickC(HAIRS), collar: '#ffffff', flower: true };
+    } else if (kind === 'photog') {
+      look = { s: 1, build: 'chubby', skin: pickC(SKINS), top: '#7f8c8d', sleeves: 'short', bottom: 'pants', pants: '#6d4c41', shoes: '#222', headR: 0.152,
+        hair: 'cap', hairColor: pickC(HAIRS), cap: '#111', camera: true, beard: true };
     } else if (kind === 'woman') {
       const dress = r() < 0.35;
       look = { s: 0.92 + r() * 0.08, build: r() < 0.35 ? 'curvy' : 'woman', skin: pickC(SKINS), top: pickC(SHIRTS), sleeves: r() < 0.5 ? 'short' : 'none',
@@ -231,6 +255,25 @@ export class Character {
     };
     ({ sh: this.armL, elbow: this.elbowL } = makeArm(1));
     ({ sh: this.armR, elbow: this.elbowR } = makeArm(-1));
+    if (L.flag) {
+      // tour flag on a stick, so the class can follow the teacher
+      const st = new THREE.CylinderGeometry(0.012, 0.012, 0.9, 6);
+      st.translate(0, -0.45, 0);
+      mesh(st, toon('#555'), this.elbowR, 0, -0.29, 0.02, true);
+      const fl = mesh(new THREE.BoxGeometry(0.01, 0.2, 0.3), toon(L.flag), this.elbowR, 0, -1.1, 0.17, true);
+      void fl;
+      this.flag = true;
+    }
+    if (L.backpack) mesh(new THREE.BoxGeometry(0.26, 0.3, 0.12), toon(L.backpack), torso, 0, 0.32, -pts.find(([, h]) => h >= 0.3)[0] * B.depth - 0.05, true);
+    if (L.bouquet) {
+      for (let k = 0; k < 5; k++) mesh(new THREE.SphereGeometry(0.045, 8, 6), toon(['#ff7eb6', '#ffffff', '#f1c40f', '#e84393', '#ffffff'][k]), this.elbowL, Math.cos(k * 1.3) * 0.05, -0.36 - (k % 2) * 0.03, 0.06 + Math.sin(k * 1.3) * 0.05);
+    }
+    if (L.camera) {
+      const cam = mesh(new THREE.BoxGeometry(0.18, 0.12, 0.1), toon('#111'), this.elbowR, 0.06, -0.3, 0.08, true);
+      const lens = mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.1, 12), toon('#333'), cam, 0, 0, 0.09);
+      lens.rotation.x = Math.PI / 2;
+    }
+    if (L.flower) mesh(new THREE.SphereGeometry(0.03, 8, 6), toon('#e84393'), torso, 0.1, 0.52, pts.find(([, h]) => h >= 0.5)[0] * B.depth + 0.01);
     if (L.selfie) {
       // selfie stick with a phone on the end
       const st = new THREE.CylinderGeometry(0.012, 0.012, 0.85, 6);
@@ -357,6 +400,18 @@ export class Character {
         break;
       }
     }
+    if (L.veil) {
+      // a veil hanging from the back of the head; the bride's one flies up in a blast
+      this.veil = group(head, 0, hy + hr * 0.7, -hr * 0.4);
+      const big = L.veil === 'bride';
+      const vm = new THREE.MeshToonMaterial({ color: '#ffffff', transparent: true, opacity: 0.75, side: THREE.DoubleSide });
+      const vg = new THREE.ConeGeometry(big ? hr * 1.8 : hr * 1.2, big ? 0.9 : 0.5, 16, 1, true);
+      vg.translate(0, -(big ? 0.45 : 0.25), 0);
+      const v = new THREE.Mesh(vg, vm);
+      v.rotation.x = 0.25;
+      this.veil.add(v);
+      mesh(new THREE.TorusGeometry(hr * 0.5, hr * 0.06, 6, 16), toon(big ? '#ffffff' : '#ff4fa3'), this.veil, 0, 0.02, 0).rotation.x = Math.PI / 2;
+    }
     if (L.hat) {
       const hm = toon(L.hat);
       const brim = mesh(new THREE.CylinderGeometry(hr * 2.3, hr * 2.3, hr * 0.06, 28), hm, head, 0, hy + hr * 0.62, 0, true);
@@ -420,6 +475,16 @@ export class Character {
     this.hip.rotation.set(0, 0, Math.sin(w) * 0.05 * mv);
     this.torso.rotation.set(0, Math.sin(w) * 0.08 * mv, 0);
     this.head.rotation.set(0, 0, 0);
+    if (this.flag && s.pose === POSE.NORMAL) {
+      this.armR.rotation.set(-2.5 + Math.sin(t * 2) * 0.1, 0, -0.2);
+      this.elbowR.rotation.set(-0.2, 0, 0);
+    }
+    if (this.veil && this.kind === 'bride') {
+      const h = Math.min(1, s.hair);
+      this.veil.rotation.set(-h * 1.9 + Math.sin(t * 14) * 0.35 * h, Math.sin(t * 9) * 0.3 * h, 0);
+      this.veil.position.y = this.veil.userData.y0 ?? (this.veil.userData.y0 = this.veil.position.y);
+      this.veil.position.y += h * 0.35;
+    }
     if (this.selfie && s.pose === POSE.NORMAL) {
       // holds the selfie stick forward like a sceptre
       this.armR.rotation.set(-0.35, 0, -0.1);
@@ -506,6 +571,26 @@ export class Character {
         this.armR.rotation.set(-1.1, 0, 0.3);
         this.elbowR.rotation.set(-2 + Math.sin(t * 18) * 0.25, 0, 0);
         mouthOpen = 1 + Math.abs(Math.sin(t * 18));
+        break;
+      }
+      case POSE.PUKE: {
+        // bent over, hands on the knees, heaving
+        const heave = Math.abs(Math.sin(t * 7));
+        this.torso.rotation.x = 0.85 + heave * 0.12;
+        this.head.rotation.x = 0.3 + heave * 0.2;
+        this.armL.rotation.set(-0.9, 0, 0.25); this.armR.rotation.set(-0.9, 0, -0.25);
+        this.elbowL.rotation.set(-0.3, 0, 0); this.elbowR.rotation.set(-0.3, 0, 0);
+        this.kneeL.rotation.set(0.35, 0, 0); this.kneeR.rotation.set(0.35, 0, 0);
+        this.legL.rotation.set(-0.25, 0, 0); this.legR.rotation.set(-0.25, 0, 0);
+        this.hip.position.y -= 0.08;
+        mouthOpen = 1.5 + heave;
+        break;
+      }
+      case POSE.PHOTO: {
+        // camera up to the eye
+        this.armR.rotation.set(-1.5, 0, 0.35); this.elbowR.rotation.set(-1.5, 0, 0);
+        this.armL.rotation.set(-1.4, 0, -0.35); this.elbowL.rotation.set(-1.5, 0, 0);
+        this.head.rotation.x = 0.05;
         break;
       }
       case POSE.DAZED: {

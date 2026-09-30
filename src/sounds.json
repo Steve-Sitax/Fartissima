@@ -661,6 +661,12 @@
    "d": 4.2
   }
  ],
+ "fx_puke": [
+  {
+   "f": "fx_puke",
+   "d": 1.88
+  }
+ ],
  "fx_siren": [
   {
    "f": "fx_siren",
@@ -1050,6 +1056,36 @@
    "f": "gfart_558127_0",
    "d": 6.61,
    "f0": 115
+  }
+ ],
+ "kid_giggle": [
+  {
+   "f": "kid_giggle",
+   "d": 3.0
+  }
+ ],
+ "kid_help": [
+  {
+   "f": "kid_help",
+   "d": 1.9
+  }
+ ],
+ "kid_laugh_boy": [
+  {
+   "f": "kid_laugh_boy",
+   "d": 2.59
+  }
+ ],
+ "kid_laugh_group": [
+  {
+   "f": "kid_laugh_group",
+   "d": 3.19
+  }
+ ],
+ "kid_scream": [
+  {
+   "f": "kid_scream",
+   "d": 2.18
   }
  ],
  "shart": [
