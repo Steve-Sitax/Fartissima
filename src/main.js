@@ -315,13 +315,6 @@ $('hero-cards').addEventListener('click', (e) => {
   if (!b) return;
   chosen = b.dataset.hero;
   renderChoose();
-  // a little sample of what this hero sounds like
-  const h = heroById(chosen);
-  sfx.stopAll();
-  const ev = sfx.realFart('dry', 3, 'beans');
-  if (ev) handleEvent({ ...ev, rate: ev.rate * h.pitch });
-  const lc = lineChars.find((l) => l.h.id === chosen);
-  lc.poseT = 1.2;
 });
 async function openChoose() {
   await ensureAudio();
@@ -334,8 +327,7 @@ async function openChoose() {
 function updateLineup(t) {
   for (const l of lineChars) {
     const sel = l.h.id === chosen;
-    l.poseT = Math.max(0, (l.poseT || 0) - 1 / 60);
-    l.st.pose = l.poseT > 0 ? POSE.FART : sel ? POSE.THUMBS : POSE.NORMAL;
+    l.st.pose = sel ? POSE.THUMBS : POSE.NORMAL;
     l.st.rot = -l.st.x * 0.06 + Math.sin(t * 0.8 + l.st.x) * 0.12;
     l.c.apply(l.st, t);
   }

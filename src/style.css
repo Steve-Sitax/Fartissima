@@ -205,6 +205,20 @@ body.touch #help { display: none; }
   .lab-name { width: 130px; font-size: 14px; }
   .lab-row button { font-size: 15px; padding: 2px 10px; }
   #rp-title { font-size: 30px; }
+  /* end screen and Hall of Fame: everything fits on one phone screen, no scrolling */
+  #results, #hof, #pause { justify-content: center; }
+  #results h2, #hof h2, #pause h2 { font-size: 32px; line-height: 1.05; }
+  #res-sub { margin: 2px 0 0; font-size: 13px; }
+  .res-grid { margin-top: 6px; gap: 10px; }
+  .res-card { width: 200px; padding: 4px 10px 6px; gap: 0; }
+  .res-card h3 { font-size: 15px; }
+  .res-card b { font-size: 30px; line-height: 1.1; }
+  .res-card small { min-height: 0; font-size: 12px; margin-bottom: 3px; }
+  .res-card button { font-size: 15px; padding: 3px 12px; }
+  .res-card.wide { width: 300px; }
+  .total-line { margin-top: 4px; font-size: 16px; }
+  .total-line:has(#res-record:empty) { display: none; }
+  #results .buttons, #hof .buttons { margin-top: 8px; }
 }
 @media (orientation: portrait) and (max-width: 700px) {
   body.touch #rotate-hint { display: block; position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); z-index: 9; background: #fff8e1; border: 3px solid #2b1d0e;
