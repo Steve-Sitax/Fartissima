@@ -11,8 +11,9 @@ export function makeCloud({ x, y, z, tier, stench, color = 0, dirX = 0, dirZ = 0
     vx: dirX * 0.6 + (Math.random() - 0.5) * 0.3,
     vz: dirZ * 0.6 + (Math.random() - 0.5) * 0.3,
     age: 0,
-    life: 5 + power * 2.6,
-    rMax: 1.4 + power * 0.9,
+    // capped: a very stinky hero on broccoli must not gas the whole square in one go
+    life: Math.min(20, 5 + power * 1.6),
+    rMax: Math.min(8, 1.4 + power * 0.6),
     r: 0.5,
     strength: 1,
     color,

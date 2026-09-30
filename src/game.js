@@ -17,7 +17,7 @@ const BURP_FACTOR = 0.8;    // burps always score a bit less than farts
 const TOXIC = 10000;        // a combo this big sets off a toxic event
 const LADY_CHASE = 5;      // seconds the fancy lady chases you
 const DAZE = 2.5;          // seconds you see stars after her selfie stick
-export const chainMult = (n) => 1 + 0.5 * (Math.min(n, 7) - 1);
+export const chainMult = (n) => 1 + 0.35 * (Math.min(n, 7) - 1);
 const TIER_AT = [10, 24, 42, 65]; // gas used -> size tier 1..5
 const BASE = [10, 25, 50, 90, 150];
 const NPC_COUNT = 32;
@@ -381,7 +381,7 @@ export class Game {
     return em;
   }
 
-  score(em) { return Math.round((em.base + em.points) * (1 + Math.min(3, em.people * 0.15)) * (em.kind === 'burp' ? BURP_FACTOR : 1)); }
+  score(em) { return Math.round((em.base + em.points) * (1 + Math.min(1.5, em.people * 0.08)) * (em.kind === 'burp' ? BURP_FACTOR : 1)); }
 
   addPoints(em, pts, npcIdx) {
     if (em.done || em.kind === 'shart') return;
@@ -442,7 +442,7 @@ export class Game {
   chainScore(c) {
     const n = c.ems.length;
     const mixed = c.ems.some((e) => e.kind === 'fart') && c.ems.some((e) => e.kind === 'burp');
-    return Math.round(c.ems.reduce((a, e) => a + this.score(e), 0) * chainMult(n) * (mixed ? 1.2 : 1));
+    return Math.round(c.ems.reduce((a, e) => a + this.score(e), 0) * chainMult(n) * (mixed ? 1.15 : 1));
   }
 
   finalizeChain(c) {
